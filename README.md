@@ -1,6 +1,6 @@
 # EasyBinder
 
-EasyBinder is an alternative field binder for Vaadin 8 that tries to reduce boiler plate code by automating the binding process and relying on javax.validation (JSR303) for validation.
+EasyBinder is an alternative field binder for Vaadin 8 that tries to reduce boiler plate code by automating the binding process and relying on javax.validation (JSR 303) for validation.
 
 EasyBinder borrows concepts (and some code) from Vaadin 8, Vaadin 7 and Viritin. EasyBinder is licensed under Apache 2.0.
 
@@ -12,7 +12,7 @@ New features compared with Vaadin 8 standard binder:
 - unbind() method.
 - Support for automatic binding of nested beans (https://github.com/vaadin/framework/issues/9210)
 - Proper null-conversions (https://github.com/vaadin/framework/issues/8441, https://github.com/vaadin/framework/issues/9000 and https://github.com/vaadin/framework/issues/9453)
-- Binding with value provider supports JSR 303 validation (https://github.com/vaadin/framework/issues/8815)
+- Binding with value-provider supports JSR 303 validation (https://github.com/vaadin/framework/issues/8815)
 - "Naked objects" inspired automatic form-builder.
 - Easily extendable, most internal classes, methods and fields are declared protected.
 
@@ -52,47 +52,47 @@ class MyEntity {
 It can be bound using one of the following approaches:
 ## Auto binding to existing Form fields
 ```
-	class MyForm {
-		TextField name = new TextField("Name");
-		TextField height = new TextField("Height");
-		DateField dateOfBirth = new DateField("Date of birth");
-		DateTimeField timeAndDate = new DateTimeField("Time and date"); 
-	}
+class MyForm {
+	TextField name = new TextField("Name");
+	TextField height = new TextField("Height");
+	DateField dateOfBirth = new DateField("Date of birth");
+	DateTimeField timeAndDate = new DateTimeField("Time and date"); 
+}
 
-	MyForm form = new MyForm();
- 	AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
-	// Perform binding 	
- 	binder.bindInstanceFields(form);
+MyForm form = new MyForm();
+AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
+// Perform binding 	
+binder.bindInstanceFields(form);
  	
- 	// Add components to form
- 	addComponents(binder.getBoundFields());
+// Add components to form
+addComponents(binder.getBoundFields());
  	
- 	// Set entity
-   	MyEntity entity = new MyEntity();
-   	binder.setBean(entity);
+// Set entity
+MyEntity entity = new MyEntity();
+binder.setBean(entity);
 ```
 
 
 ## Auto creation of Form fields
 ```
- 	AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
-	// Perform field creation, binding and add components to form
-	addComponents(
-		binder.buildAndBind()
-		);
+AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
+// Perform field creation, binding and add components to form
+addComponents(
+	binder.buildAndBind()
+	);
 	
-	// Set entity
-   	MyEntity entity = new MyEntity();
-   	binder.setBean(entity);
+// Set entity
+MyEntity entity = new MyEntity();
+binder.setBean(entity);
 ```
 
 ## Register custom converter
 ```
-	ConverterRegistry.getInstance().registerConverter(String.class, Character.class, Converter.from(e -> e.length() == 0 ? Result.ok(null) : (e.length() == 1 ? Result.ok(e.charAt(0)) : Result.error("Must be 1 character")), f -> f == null ? "" : "" + f));	
+ConverterRegistry.getInstance().registerConverter(String.class, Character.class, Converter.from(e -> e.length() == 0 ? Result.ok(null) : (e.length() == 1 ? Result.ok(e.charAt(0)) : Result.error("Must be 1 character")), f -> f == null ? "" : "" + f));	
 ```
 ## Register custom field builder
 ```
-		ComponentFactoryRegistry().getInstance().addBuildPattern(Date.class, e -> Arrays.asList(e.getAnnotations()).stream().filter(f -> f instanceof Temporal).map(f -> (Temporal)f).filter(f -> f.value() == TemporalType.TIMESTAMP).findAny().isPresent(), e -> new DateTimeField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+ComponentFactoryRegistry().getInstance().addBuildPattern(Date.class, e -> Arrays.asList(e.getAnnotations()).stream().filter(f -> f instanceof Temporal).map(f -> (Temporal)f).filter(f -> f.value() == TemporalType.TIMESTAMP).findAny().isPresent(), e -> new DateTimeField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 ```
 
 ## Examples
