@@ -7,6 +7,7 @@ import com.vaadin.data.RequiredFieldConfigurator;
 import com.vaadin.data.Result;
 import com.vaadin.data.converter.LocalDateTimeToDateConverter;
 import com.vaadin.data.converter.LocalDateToDateConverter;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
@@ -37,6 +38,7 @@ public class VaadinBeanBinderExample extends AbstractTest {
 	DateTimeField ebt = new DateTimeField("EBT");
 	DateTimeField abt = new DateTimeField("ABT");
 	TextField gate = new TextField("Gate");
+	CheckBox canceled = new CheckBox("Canceled");
 
 	@Override
 	public Component getTestComponent() {

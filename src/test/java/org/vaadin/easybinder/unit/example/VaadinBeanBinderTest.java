@@ -22,6 +22,7 @@ import com.vaadin.data.RequiredFieldConfigurator;
 import com.vaadin.data.Result;
 import com.vaadin.data.converter.LocalDateTimeToDateConverter;
 import com.vaadin.data.converter.LocalDateToDateConverter;
+import com.vaadin.ui.Label;
 
 public class VaadinBeanBinderTest extends BaseTests {
 
@@ -86,6 +87,11 @@ public class VaadinBeanBinderTest extends BaseTests {
 		return binder.isValid();
 	}
 
+	@Override
+	protected void setStatusLabel(Label label) {
+		binder.setStatusLabel(label);
+	}
+		
 	@Test
 	@Override
 	public void testStringConversion() {

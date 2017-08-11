@@ -26,6 +26,8 @@ public class Flight {
 
 	@NotNull(groups = FlightGroupProvider.Scheduled.class, message = "Gate should be set when scheduled")
 	String gate;
+	
+	boolean canceled;
 
 	public Flight() {
 		flightId = new FlightId();
@@ -104,6 +106,18 @@ public class Flight {
 	 */
 	public void setGate(String gate) {
 		this.gate = gate;
+	}
+	
+	public void setCanceled(boolean canceled) {
+		this.canceled = canceled;
+	}
+	
+	public boolean getCanceled() {
+		return canceled;
+	}
+
+	public boolean isCanceled() {
+		return canceled;
 	}
 
 }

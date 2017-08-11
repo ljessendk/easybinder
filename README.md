@@ -106,6 +106,11 @@ The examples can be run by running the embedded test server located in src/test/
 ## Help wanted
 
 These are some of the points currently on my TODO list, any help would be appreciated:
+- Unit test for multiple nesting levels for buildAndBind
+- Add ValueChange and StateChange events similar to Vaadin 8 Binder
+- Add hasChanges() method
+- Add unit test to test correct ValueChange/StateChange/hasValue behaviour when: setting beans, unsetting beans, setting values, etc. 
+- Add unit test to test unbinding
 - More use cases.
 - Code review.
 - API doc documentation and supplemental documentation.

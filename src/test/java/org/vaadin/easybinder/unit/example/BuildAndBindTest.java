@@ -8,8 +8,10 @@ import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId.LegType;
 
 import com.vaadin.data.HasValue;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.RadioButtonGroup;
 
@@ -31,6 +33,7 @@ public class BuildAndBindTest extends BaseTests {
 		form.ebt = (DateTimeField) binder.getFieldForProperty("ebt").get();
 		form.abt = (DateTimeField) binder.getFieldForProperty("abt").get();
 		form.gate = (TextField) binder.getFieldForProperty("gate").get();
+		form.canceled = (CheckBox) binder.getFieldForProperty("canceled").get();
 	}
 
 	@Override
@@ -47,4 +50,9 @@ public class BuildAndBindTest extends BaseTests {
 	protected boolean isValid() {
 		return binder.isValid();
 	}
+	
+	@Override
+	protected void setStatusLabel(Label label) {
+		binder.setStatusLabel(label);
+	}	
 }

@@ -2,6 +2,7 @@ package org.vaadin.easybinder.unit.example;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -18,8 +19,10 @@ import org.vaadin.easybinder.testentity.FlightId.LegType;
 
 import com.vaadin.annotations.PropertyId;
 import com.vaadin.data.HasValue;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.RadioButtonGroup;
 import com.vaadin.ui.TextField;
 
@@ -40,6 +43,7 @@ public abstract class BaseTests {
 		DateTimeField ebt = new DateTimeField("EBT");
 		DateTimeField abt = new DateTimeField("ABT");
 		TextField gate = new TextField("Gate");
+		CheckBox canceled = new CheckBox("Canceled");
 	}
 
 	protected abstract void setBean(Flight flight);
@@ -47,13 +51,15 @@ public abstract class BaseTests {
 	protected abstract Stream<HasValue<?>> getFields();
 
 	protected abstract boolean isValid();
+	
+	protected abstract void setStatusLabel(Label label);
 
 	static MyForm form = new MyForm();
 
 	@Test
 	public void testBinding() {
 		setBean(new Flight());
-		assertEquals(9, getFields().collect(Collectors.toList()).size());
+		assertEquals(10, getFields().collect(Collectors.toList()).size());
 	}
 
 	@Test
@@ -137,6 +143,28 @@ public abstract class BaseTests {
 		assertEquals(98, f.getFlightId().getFlightNumber());
 	}
 
+	@Test
+	public void testBoolConversion() {
+		Flight f = new Flight();
+		setBean(f);
+
+		// boolean->String model->presentation
+		assertEquals(false, f.isCanceled());
+		assertEquals(false, form.canceled.getValue());
+		f.setCanceled(true);
+		setBean(f);
+		assertEquals(true, form.canceled.getValue());
+		f.setCanceled(false);
+		setBean(f);
+
+		// String->bool presentation->model
+		form.canceled.setValue(true);
+		assertEquals(true, f.isCanceled());
+		form.canceled.setValue(false);
+		assertEquals(false, f.isCanceled());
+	}	
+	
+	
 	@Test
 	public void testCharacterConversion() {
 		Flight f = new Flight();
@@ -224,13 +252,20 @@ public abstract class BaseTests {
 		form.abt.setValue(now);
 		form.gate.setValue("A16");
 
+		Label label = new Label();
+		setStatusLabel(label);
+				
 		assertTrue(isValid());
+		assertEquals("", label.getValue());		
 
 		form.sbt.setValue(null);
 		assertNull(form.sbt.getValue());
 		assertFalse(isValid());
+		assertNotEquals("", label.getValue());
+		
 		form.sbt.setValue(now);
 		assertTrue(isValid());
+		assertEquals("", label.getValue());				
 	}
 
 	@Test

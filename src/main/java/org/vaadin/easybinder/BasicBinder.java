@@ -24,21 +24,29 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-//import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 
+import com.vaadin.data.Binder;
 import com.vaadin.data.Converter;
 import com.vaadin.data.HasValue;
 import com.vaadin.data.Result;
+import com.vaadin.data.StatusChangeEvent;
+import com.vaadin.data.StatusChangeListener;
 import com.vaadin.data.ValueContext;
 import com.vaadin.data.ValueProvider;
+import com.vaadin.data.Binder.Binding;
+import com.vaadin.data.Binder.BindingBuilder;
+import com.vaadin.data.HasValue.ValueChangeEvent;
+import com.vaadin.data.HasValue.ValueChangeListener;
+import com.vaadin.event.EventRouter;
 import com.vaadin.server.ErrorMessage;
 import com.vaadin.server.Setter;
 import com.vaadin.server.UserError;
@@ -68,11 +76,13 @@ public class BasicBinder<BEAN> {
 			this.setter = setter;
 			this.property = property;
 			this.converterValidatorChain = converterValidatorChain;
-
+			
 			registration = field.addValueChangeListener(e -> {
 				if (binder.getBean() != null) {
-					fieldToBean(binder.getBean());
-					// binder.validate();
+					if(fieldToBean(binder.getBean())) {
+						binder.validate();
+						binder.fireValueChangeEvent(e);
+					}
 				}
 			});
 		}
@@ -85,14 +95,15 @@ public class BasicBinder<BEAN> {
 			field.setValue(converterValidatorChain.convertToPresentation(getter.apply(bean), createValueContext()));
 		}
 
-		public void fieldToBean(BEAN bean) {
+		public boolean fieldToBean(BEAN bean) {
 			Result<TARGET> result = converterValidatorChain.convertToModel(field.getValue(), createValueContext());
 			result.ifError(e -> binder.setConversionError(field, e));
 			result.ifOk(e -> {
 				binder.clearConversionError(field);
 				setter.accept(bean, e);
-				binder.validate();
+				binder.hasChanges = true;				
 			});
+			return !result.isError();
 		}
 
 		public HasValue<FIELDVALUE> getField() {
@@ -147,10 +158,14 @@ public class BasicBinder<BEAN> {
 	protected Set<ConstraintViolation<BEAN>> constraintViolations;
 	protected Map<HasValue<?>, String> conversionViolations = new HashMap<>();
 
+	protected boolean hasChanges = false;
+	
 	protected Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
 	protected Class<?>[] groups = new Class<?>[0];
 
+	protected EventRouter eventRouter;
+	
 	public BasicBinder() {
 		validate();
 	}
@@ -158,12 +173,22 @@ public class BasicBinder<BEAN> {
 	public void setBean(BEAN bean) {
 		this.bean = bean;
 
-		bindings.forEach(e -> e.beanToField(bean));
+		if(bean == null) {
+			
+		} else {
+			bindings.forEach(e -> e.beanToField(bean));
+		}
+		
 		validate();
+		hasChanges = false;
 	}
 
 	public BEAN getBean() {
 		return bean;
+	}
+	
+	public void removeBean() {
+		setBean(null);
 	}
 
 	public void setValidationGroups(Class<?>... groups) {
@@ -191,6 +216,12 @@ public class BasicBinder<BEAN> {
 	public <FIELDVALUE, TARGET> EasyBinding<BEAN, FIELDVALUE, TARGET> bind(HasValue<FIELDVALUE> field,
 			ValueProvider<BEAN, TARGET> getter, Setter<BEAN, TARGET> setter, String property,
 			Converter<FIELDVALUE, TARGET> converter) {
+		
+		Objects.requireNonNull(field);
+		Objects.requireNonNull(getter);
+		Objects.requireNonNull(property);
+		Objects.requireNonNull(converter);
+		
 		// Register as binding
 		EasyBinding<BEAN, FIELDVALUE, TARGET> binding = new EasyBinding<BEAN, FIELDVALUE, TARGET>(this, field, getter,
 				setter, property, converter);
@@ -202,9 +233,12 @@ public class BasicBinder<BEAN> {
 		}
 
 		if (getBean() != null) {
-			binding.fieldToBean(getBean());
-			// validate();
+			if(binding.fieldToBean(getBean())) {
+				validate();
+			}
 		}
+		
+		fireStatusChangeEvent(false);		
 
 		return binding;
 	}
@@ -244,6 +278,7 @@ public class BasicBinder<BEAN> {
 
 	protected void validate() {
 		// Clear validation errors
+		getStatusLabel().ifPresent(e -> e.setValue(""));
 		validationErrorMap.values().stream().forEach(e -> clearError(e));
 
 		// Validate and set validation errors
@@ -256,6 +291,7 @@ public class BasicBinder<BEAN> {
 
 		conversionViolations.entrySet().stream().forEach(e -> handleError(e.getKey(), e.getValue()));
 
+		fireStatusChangeEvent(isValid());		
 	}
 
 	protected void setConversionError(HasValue<?> field, String message) {
@@ -317,4 +353,87 @@ public class BasicBinder<BEAN> {
 	public Optional<HasValue<?>> getFieldForProperty(String propertyName) {
 		return Optional.ofNullable(validationErrorMap.get(propertyName));
 	}
+	
+    /**
+     * Adds field value change listener to all the fields in the binder.
+     * <p>
+     * Added listener is notified every time whenever any bound field value is
+     * changed. The same functionality can be achieved by adding a
+     * {@link ValueChangeListener} to all fields in the {@link Binder}.
+     * <p>
+     * The listener is added to all fields regardless of whether the method is
+     * invoked before or after field is bound.
+     *
+     * @see ValueChangeEvent
+     * @see ValueChangeListener
+     *
+     * @param listener
+     *            a field value change listener
+     * @return a registration for the listener
+     */
+    public Registration addValueChangeListener(
+            ValueChangeListener<?> listener) {
+        return getEventRouter().addListener(ValueChangeEvent.class, listener,
+                ValueChangeListener.class.getDeclaredMethods()[0]);
+    }	
+    
+    /**
+     * Returns the event router for this binder.
+     *
+     * @return the event router, not null
+     */
+    protected EventRouter getEventRouter() {
+        if (eventRouter == null) {
+            eventRouter = new EventRouter();
+        }
+        return eventRouter;
+    }    
+    
+    /**
+     * Adds status change listener to the binder.
+     * <p>
+     * The {@link Binder} status is changed whenever any of the following
+     * happens:
+     * <ul>
+     * <li>if it's bound and any of its bound field or select has been changed
+     * <li>{@link #writeBean(Object)} or {@link #writeBeanIfValid(Object)} is
+     * called
+     * <li>{@link #readBean(Object)} is called
+     * <li>{@link #setBean(Object)} is called
+     * <li>{@link #removeBean()} is called
+     * <li>{@link BindingBuilder#bind(ValueProvider, Setter)} is called
+     * <li>{@link Binder#validate()} or {@link Binding#validate()} is called
+     * </ul>
+     *
+     * @see #readBean(Object)
+     * @see #writeBean(Object)
+     * @see #writeBeanIfValid(Object)
+     * @see #setBean(Object)
+     * @see #removeBean()
+     * @see #forField(HasValue)
+     * @see #validate()
+     * @see Binding#validate()
+     *
+     * @param listener
+     *            status change listener to add, not null
+     * @return a registration for the listener
+     */
+    public Registration addStatusChangeListener(StatusChangeListener listener) {
+        return getEventRouter().addListener(StatusChangeEvent.class, listener,
+                StatusChangeListener.class.getDeclaredMethods()[0]);
+    }    
+    
+    public boolean getHasChanges() {
+    	return hasChanges;
+    }
+    
+    protected <V> void fireValueChangeEvent(ValueChangeEvent<V> event) {
+        getEventRouter().fireEvent(event);
+    }
+    
+    protected void fireStatusChangeEvent(boolean hasValidationErrors) {
+        getEventRouter()
+                .fireEvent(new BinderStatusChangeEvent(this, hasValidationErrors));
+    }    
+    
 }

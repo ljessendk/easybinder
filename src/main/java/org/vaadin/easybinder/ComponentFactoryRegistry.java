@@ -32,6 +32,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 import com.vaadin.shared.util.SharedUtil;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
@@ -59,6 +60,14 @@ public class ComponentFactoryRegistry {
 				e -> !Arrays.asList(e.getAnnotations()).stream().filter(f -> f instanceof Temporal)
 						.map(f -> (Temporal) f).filter(f -> f.value() == TemporalType.TIMESTAMP).findAny().isPresent(),
 				e -> new DateField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(Boolean.class, 
+				e -> true,
+				e -> new CheckBox()
+				);
+		addBuildPattern(boolean.class, 
+				e -> true,
+				e -> new CheckBox()
+				);		
 	}
 
 	public static ComponentFactoryRegistry getInstance() {

@@ -7,6 +7,7 @@ import org.vaadin.easybinder.AutoBinder;
 import org.vaadin.easybinder.testentity.Flight;
 
 import com.vaadin.data.HasValue;
+import com.vaadin.ui.Label;
 
 public class AutomaticPropertyBindingTest extends BaseTests {
 
@@ -30,6 +31,11 @@ public class AutomaticPropertyBindingTest extends BaseTests {
 	@Override
 	protected boolean isValid() {
 		return binder.isValid();
+	}
+
+	@Override
+	protected void setStatusLabel(Label label) {
+		binder.setStatusLabel(label);
 	}
 
 }

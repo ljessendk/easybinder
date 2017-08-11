@@ -81,7 +81,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 			modelTypeClass = modelField.get().getType();
 		}
 
-		Converter<PRESENTATION, ?> converter;
+		Converter<PRESENTATION, ?> converter = null;
 		if (fieldTypeClass.isPresent()) {
 			converter = globalConverterRegistry.getConverter(fieldTypeClass.get(), modelTypeClass);
 			if (converter != null) {
@@ -99,8 +99,11 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 							new Object[] { fieldTypeClass.get(), modelTypeClass });
 				}
 			}
-		} else {
-			converter = createConverter(modelTypeClass);
+		} 
+		
+		if(converter == null) {
+			// Uses definition.getType() to ensure that the object type and not primitive type is returned.
+			converter = createConverter(definition.getType());
 			log.log(Level.WARNING, "Converter for {0} generated", new Object[] { modelTypeClass });
 		}
 
@@ -110,6 +113,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
 			String propertyName, Converter<PRESENTATION, ?> converter) {
+		Objects.requireNonNull(converter);
 		Objects.requireNonNull(propertyName, "Property name cannot be null");
 		// checkUnbound();
 

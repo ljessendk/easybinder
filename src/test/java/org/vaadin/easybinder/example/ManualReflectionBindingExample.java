@@ -7,6 +7,7 @@ import org.vaadin.easybinder.ReflectionBinder;
 import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId.LegType;
 
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
@@ -26,6 +27,7 @@ public class ManualReflectionBindingExample extends AbstractTest {
 	DateTimeField ebt = new DateTimeField("EBT");
 	DateTimeField abt = new DateTimeField("ABT");
 	TextField gate = new TextField("Gate");
+	CheckBox canceled = new CheckBox("Canceled");	
 
 	@Override
 	public Component getTestComponent() {
@@ -39,6 +41,7 @@ public class ManualReflectionBindingExample extends AbstractTest {
 		binder.bind(ebt, "ebt");
 		binder.bind(abt, "abt");
 		binder.bind(gate, "gate");
+		binder.bind(canceled, "canceled");
 
 		FormLayout f = new FormLayout();
 
