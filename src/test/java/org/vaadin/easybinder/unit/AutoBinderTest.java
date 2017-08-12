@@ -12,15 +12,46 @@ import org.vaadin.easybinder.AutoBinder;
 
 import com.vaadin.data.HasValue;
 import com.vaadin.ui.AbstractField;
-import com.vaadin.ui.TextField;
 
 public class AutoBinderTest {
-	public static class MyForm {
-		TextField street = new TextField();
-		TextField number = new TextField();
-		TextField number2 = new TextField();
+		
+	public static class Car {
+		Wheel frontLeft = new Wheel();
+		
+		public Wheel getFrontLeft() {
+			return frontLeft;
+		}
+		
+		public void setFrontLeft(Wheel frontLeft) {
+			this.frontLeft = frontLeft;
+		}
 	}
-
+	
+	public static class Wheel {		
+		Tire tire = new Tire();
+		
+		public Tire getTire() {
+			return tire;
+		}
+		
+		public void setTire(Tire tire) {
+			this.tire = tire;
+		}
+	}
+	
+	public static class Tire {
+		String type;
+		
+		public String getType() {
+			return type;
+		}
+		
+		public void setType(String type) {
+			this.type = type;
+		}
+	}	
+	
+	
 	public static class MyEntity {
 		String street;
 
@@ -28,6 +59,10 @@ public class AutoBinderTest {
 		Integer number;
 
 		int number2;
+		
+		Car car = new Car();
+		
+		Wheel spare = new Wheel();
 
 		public String getStreet() {
 			return street;
@@ -52,40 +87,29 @@ public class AutoBinderTest {
 		public void setNumber2(int number) {
 			this.number2 = number;
 		}
-
-	}
-
-	@Test
-	public void testValid() {
-		MyForm form = new MyForm();
-		AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
-
-		binder.bindInstanceFields(form);
-
-		MyEntity entity = new MyEntity();
-		binder.setBean(entity);
-
-		form.street.setValue("mystreet");
-		form.number.setValue("100");
-
-		assertEquals(new Integer(100), entity.getNumber());
-		assertEquals("mystreet", entity.getStreet());
-
-		assertNull(form.number.getComponentError());
-		form.number.setValue("0");
-		assertNotNull(form.number.getComponentError());
-
-		form.number2.setValue("");
-		assertNotNull(form.number2.getComponentError());
-		form.number2.setValue("2");
-		assertNull(form.number2.getComponentError());
+		
+		public Car getCar() {
+			return car;
+		}
+		
+		public void setCar(Car car) {
+			this.car = car;
+		}
+		
+		public Wheel getSpare() {
+			return spare;
+		}
+		
+		public void setSpare(Wheel spare) {
+			this.spare = spare;
+		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testBuildAndBind() {
 		AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
-		binder.buildAndBind();
+		binder.buildAndBind("car", "car.frontLeft", "car.frontLeft.tire", "spare", "spare.tire");
 
 		MyEntity entity = new MyEntity();
 		binder.setBean(entity);
@@ -93,6 +117,9 @@ public class AutoBinderTest {
 		assertTrue(binder.getFieldForProperty("street").isPresent());
 		assertTrue(binder.getFieldForProperty("number").isPresent());
 		assertTrue(binder.getFieldForProperty("number2").isPresent());
+		assertTrue(binder.getFieldForProperty("car.frontLeft.tire.type").isPresent());
+		assertTrue(binder.getFieldForProperty("spare.tire.type").isPresent());
+		
 
 		AbstractField<String> numberField = (AbstractField<String>) binder.getFieldForProperty("number").get();
 		AbstractField<String> numberField2 = (AbstractField<String>) binder.getFieldForProperty("number2").get();

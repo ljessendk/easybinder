@@ -24,11 +24,11 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -114,7 +114,6 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 	 *            type of the property
 	 * @return {@code true} if property is successfully bound
 	 */
-	// @SuppressWarnings("unchecked")
 	protected boolean bindProperty(Object objectWithMemberFields, Field memberField, String propertyName,
 			Class<?> propertyType) {
 		log.log(Level.INFO, "Binding property, field={0}, property={1}",
@@ -126,7 +125,7 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 					String.format("Unable to detect value type for the member '%s' in the " + "class '%s'.",
 							memberField.getName(), objectWithMemberFields.getClass().getName()));
 		}
-		// if (propertyType.equals(GenericTypeReflector.erase(valueType))) {
+	
 		HasValue<?> field;
 		// Get the field from the object
 		try {
@@ -136,19 +135,10 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 			// If we cannot determine the value, just skip the field
 			return false;
 		}
-		/*
-		 * if (field == null) { field = makeFieldInstance( (Class<? extends
-		 * HasValue<?>>) memberField.getType()); initializeField(objectWithMemberFields,
-		 * memberField, field); }
-		 */
+
 		bind(field, propertyName);
 		return true;
-		/*
-		 * } else { throw new IllegalStateException(String.format(
-		 * "Property type '%s' doesn't " + "match the field type '%s'. " +
-		 * "Binding should be configured manually using converter.",
-		 * propertyType.getName(), valueType.getTypeName())); }
-		 */
+
 	}
 
 	/**
@@ -208,7 +198,6 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 			propertyName = field.getName();
 		}
 
-		// String propertyName = descriptor.get().getName();
 		if (boundProperties.containsKey(propertyName)) {
 			return false;
 		}
@@ -253,36 +242,36 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 			String... nestedProperties) {
 		List<Field> fields = getFieldsInDeclareOrder(currentClazz);
 
-		Set<String> currentNestedPropertySet = new HashSet<String>(Arrays.asList(nestedProperties));
-		Set<String> nextNestedPropertySet = new HashSet<String>();
-
+		Map<String, List<String>> nestedPropertyMap = new HashMap<>();
+		
 		for (String p : nestedProperties) {
 			int index = p.indexOf('.', 0);
-			if (index == -1) {
-				currentNestedPropertySet.add(p);
-			} else {
-				nextNestedPropertySet.add(p.substring(index, p.length()));
+			String current = index == -1 ? p : p.substring(0, index);
+			List<String> next = nestedPropertyMap.get(current);
+			if(next == null) {
+				next = new LinkedList<>();
+				nestedPropertyMap.put(current, next);
 			}
+			if(index != -1) {
+				next.add(p.substring(index+1, p.length()));				
+			}			
 		}
 
 		for (Field field : fields) {
 			if ((field.getModifiers() & Modifier.STATIC) != 0) {
 				continue;
 			}
-			if (currentNestedPropertySet.contains(field.getName())) {
+			if(boundProperties.containsKey(path + field.getName())) {
+				// property already bound, skip
+				continue;
+			}
+			if (nestedPropertyMap.containsKey(field.getName())) {
 				buildAndBind(field.getType(), path + field.getName() + ".", components,
-						nextNestedPropertySet.stream().toArray(String[]::new));
+						nestedPropertyMap.get(field.getName()).stream().toArray(String[]::new));
 			} else {
 				components.add(createAndBind(field, path));
 			}
 		}
-
-		/*
-		 * components.addAll( fields.stream().filter(e -> (e.getModifiers() &
-		 * Modifier.STATIC) == 0).map(e ->
-		 * nestedPropertySet.contains(o)createAndBind(e)).collect(Collectors.toList())
-		 * );
-		 */
 	}
 
 	/**
