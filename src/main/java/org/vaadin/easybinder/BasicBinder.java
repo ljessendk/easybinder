@@ -404,23 +404,13 @@ public class BasicBinder<BEAN> {
      * happens:
      * <ul>
      * <li>if it's bound and any of its bound field or select has been changed
-     * <li>{@link #writeBean(Object)} or {@link #writeBeanIfValid(Object)} is
-     * called
-     * <li>{@link #readBean(Object)} is called
      * <li>{@link #setBean(Object)} is called
      * <li>{@link #removeBean()} is called
-     * <li>{@link BindingBuilder#bind(ValueProvider, Setter)} is called
-     * <li>{@link Binder#validate()} or {@link Binding#validate()} is called
+     * <li>{@link #bind(HasValue, ValueProvider, Setter, String)} is called
      * </ul>
      *
-     * @see #readBean(Object)
-     * @see #writeBean(Object)
-     * @see #writeBeanIfValid(Object)
      * @see #setBean(Object)
      * @see #removeBean()
-     * @see #forField(HasValue)
-     * @see #validate()
-     * @see Binding#validate()
      *
      * @param listener
      *            status change listener to add, not null

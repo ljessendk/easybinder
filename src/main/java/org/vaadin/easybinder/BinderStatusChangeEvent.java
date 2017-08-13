@@ -26,18 +26,13 @@ import com.vaadin.server.Setter;
  * The {@link BasicBinder} status is changed whenever any of the following happens:
  * <ul>
  * <li>if any of its bound fields or selects have been changed
- * <li>{@link Binder#setBean(Object)} is called
- * <li>{@link Binder#removeBean()} is called
- * <li>{@link BindingBuilder#bind(ValueProvider, Setter)} is called
- * <li>{@link Binder#validate()} or {@link Binding#validate()} is called
+ * <li>{@link BasicBinder#setBean(Object)} is called
+ * <li>{@link BasicBinder#removeBean()} is called
+ * <li>{@link BasicBinder#bind(HasValue, ValueProvider, Setter, String)} is called
  * </ul>
  *
- * @see StatusChangeListener#statusChange(StatusChangeEvent)
- * @see Binder#addStatusChangeListener(StatusChangeListener)
- *
- * @author Vaadin Ltd
- *
- * @since 8.0
+ * @see BinderStatusChangeListener#statusChange(BinderStatusChangeEvent)
+ * @see BasicBinder#addStatusChangeListener(BinderStatusChangeListener)
  */
 @SuppressWarnings("serial")
 public class BinderStatusChangeEvent extends EventObject {
