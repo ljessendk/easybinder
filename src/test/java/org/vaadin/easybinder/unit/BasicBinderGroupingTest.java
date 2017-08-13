@@ -1,5 +1,6 @@
 package org.vaadin.easybinder.unit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -135,6 +136,12 @@ public class BasicBinderGroupingTest {
 		binder.setValidationGroups(MyGroup.class);
 
 		assertFalse(binder.isValid());
+		
+		assertEquals(1, binder.getValidationGroups().length);
+		
+		binder.clearValidationGroups();
+		
+		assertTrue(binder.isValid());
 	}
 
 }

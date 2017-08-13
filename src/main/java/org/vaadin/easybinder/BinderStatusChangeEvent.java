@@ -18,8 +18,6 @@
 package org.vaadin.easybinder;
 import java.util.EventObject;
 
-import com.vaadin.data.Binder.Binding;
-import com.vaadin.data.Binder.BindingBuilder;
 import com.vaadin.server.Setter;
 
 /**

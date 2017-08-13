@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import com.googlecode.gentyref.GenericTypeReflector;
 import com.vaadin.annotations.PropertyId;
@@ -297,16 +296,12 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 	 * as nested properties.
 	 *
 	 * @param nestedProperties
-	 *            The object that contains (Java) member fields to bind
+	 *            List of nested properies that should be expanded.
 	 * @return list of components build by the process
 	 */
 	public Component[] buildAndBind(String... nestedProperties) {
 		List<Component> components = new LinkedList<>();
 		buildAndBind(clazz, "", components, nestedProperties);
 		return components.stream().toArray(Component[]::new);
-	}
-
-	public List<HasValue<?>> getBoundFields() {
-		return bindings.stream().map(e -> e.getField()).collect(Collectors.toList());
 	}
 }

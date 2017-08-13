@@ -38,12 +38,8 @@ import com.vaadin.data.Binder;
 import com.vaadin.data.Converter;
 import com.vaadin.data.HasValue;
 import com.vaadin.data.Result;
-import com.vaadin.data.StatusChangeEvent;
-import com.vaadin.data.StatusChangeListener;
 import com.vaadin.data.ValueContext;
 import com.vaadin.data.ValueProvider;
-import com.vaadin.data.Binder.Binding;
-import com.vaadin.data.Binder.BindingBuilder;
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.event.EventRouter;
@@ -156,6 +152,7 @@ public class BasicBinder<BEAN> {
 	protected List<EasyBinding<BEAN, ?, ?>> bindings = new LinkedList<EasyBinding<BEAN, ?, ?>>();
 
 	protected Set<ConstraintViolation<BEAN>> constraintViolations;
+	
 	protected Map<HasValue<?>, String> conversionViolations = new HashMap<>();
 
 	protected boolean hasChanges = false;
@@ -202,6 +199,7 @@ public class BasicBinder<BEAN> {
 
 	public void clearValidationGroups() {
 		groups = new Class<?>[0];
+		validate();
 	}
 
 	public boolean isValid() {
@@ -219,7 +217,6 @@ public class BasicBinder<BEAN> {
 		
 		Objects.requireNonNull(field);
 		Objects.requireNonNull(getter);
-		Objects.requireNonNull(property);
 		Objects.requireNonNull(converter);
 		
 		// Register as binding
@@ -243,7 +240,20 @@ public class BasicBinder<BEAN> {
 		return binding;
 	}
 
-	public <FIELDVALUE, TARGET> void unbind(EasyBinding<BEAN, FIELDVALUE, TARGET> binding) {
+	public void unbind() {
+		while(!bindings.isEmpty()) {
+			EasyBinding<BEAN, ?, ?> binding = bindings.remove(0);
+			binding.remove();
+			validationErrorMap.remove(binding.getProperty());
+		}
+	}
+	
+	public void unbind(HasValue<?> field) {		
+		bindings.stream().filter(e -> e.getField().equals(field)).findFirst().ifPresent(e -> unbind(e));
+		validate();
+	}
+	
+	protected <FIELDVALUE, TARGET> void unbind(EasyBinding<BEAN, FIELDVALUE, TARGET> binding) {
 		if (bindings.remove(binding)) {
 			binding.remove();
 		}
@@ -251,8 +261,6 @@ public class BasicBinder<BEAN> {
 		if (binding.getProperty() != null) {
 			validationErrorMap.remove(binding.getProperty());
 		}
-
-		validate();
 	}
 
 	public Stream<HasValue<?>> getFields() {
@@ -291,7 +299,7 @@ public class BasicBinder<BEAN> {
 
 		conversionViolations.entrySet().stream().forEach(e -> handleError(e.getKey(), e.getValue()));
 
-		fireStatusChangeEvent(isValid());		
+		fireStatusChangeEvent(!constraintViolations.isEmpty());		
 	}
 
 	protected void setConversionError(HasValue<?> field, String message) {
@@ -418,9 +426,9 @@ public class BasicBinder<BEAN> {
      *            status change listener to add, not null
      * @return a registration for the listener
      */
-    public Registration addStatusChangeListener(StatusChangeListener listener) {
-        return getEventRouter().addListener(StatusChangeEvent.class, listener,
-                StatusChangeListener.class.getDeclaredMethods()[0]);
+    public Registration addStatusChangeListener(BinderStatusChangeListener listener) {
+        return getEventRouter().addListener(BinderStatusChangeEvent.class, listener,
+                BinderStatusChangeListener.class.getDeclaredMethods()[0]);
     }    
     
     public boolean getHasChanges() {
