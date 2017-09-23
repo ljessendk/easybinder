@@ -15,6 +15,8 @@
  */
 package org.vaadin.easybinder;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -26,7 +28,13 @@ import com.vaadin.data.Converter;
 import com.vaadin.data.Result;
 import com.vaadin.data.converter.LocalDateTimeToDateConverter;
 import com.vaadin.data.converter.LocalDateToDateConverter;
+import com.vaadin.data.converter.StringToBigDecimalConverter;
+import com.vaadin.data.converter.StringToBigIntegerConverter;
+import com.vaadin.data.converter.StringToBooleanConverter;
+import com.vaadin.data.converter.StringToDoubleConverter;
+import com.vaadin.data.converter.StringToFloatConverter;
 import com.vaadin.data.converter.StringToIntegerConverter;
+import com.vaadin.data.converter.StringToLongConverter;
 
 public class ConverterRegistry {
 	static ConverterRegistry instance;
@@ -41,25 +49,43 @@ public class ConverterRegistry {
 	}
 
 	private ConverterRegistry() {
-		Converter<String, Integer> c = Converter.from(e -> {
-			if (e.length() == 0) {
-				return Result.error("Must be a number");
-			}
-			try {
-				return Result.ok(Integer.parseInt(e));
-			} catch (NumberFormatException ex) {
-				return Result.error("Must be a number");
-			}
-		}, e -> Integer.toString(e));
 
-		registerConverter(String.class, int.class, c);
+		registerConverter(String.class, int.class, new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToIntegerConverter("Must be a number")));
 		registerConverter(String.class, Integer.class,
-				new NullConverter<String>("").chain(new StringToIntegerConverter("Conversion failed")));
-		registerConverter(String.class, Character.class,
-				Converter.from(
-						e -> e.length() == 0 ? Result.ok(null)
-								: (e.length() == 1 ? Result.ok(e.charAt(0)) : Result.error("Must be 1 character")),
-						f -> f == null ? "" : "" + f));
+				new NullConverter<String>("").chain(new StringToIntegerConverter("Must be a number")));
+		
+		registerConverter(String.class, long.class, new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToLongConverter("Must be a number")));
+		registerConverter(String.class, Long.class,
+				new NullConverter<String>("").chain(new StringToLongConverter("Must be a number")));
+		
+		registerConverter(String.class, float.class, new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToFloatConverter("Must be a number")));
+		registerConverter(String.class, Float.class,
+				new NullConverter<String>("").chain(new StringToFloatConverter("Must be a number")));
+		
+		registerConverter(String.class, double.class, new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToDoubleConverter("Must be a number")));
+		registerConverter(String.class, Double.class,
+				new NullConverter<String>("").chain(new StringToDoubleConverter("Must be a number")));
+
+		registerConverter(String.class, boolean.class, new StringLengthConverterValidator("Must be true or false", 1, null).chain(new StringToBooleanConverter("Must be true or false")));
+		registerConverter(String.class, Boolean.class,
+				new NullConverter<String>("").chain(new StringToBooleanConverter("Must be true or false")));
+		
+		registerConverter(String.class, BigInteger.class,
+				new NullConverter<String>("").chain(new StringToBigIntegerConverter("Must be a number")));
+
+		registerConverter(String.class, BigDecimal.class,
+				new NullConverter<String>("").chain(new StringToBigDecimalConverter("Must be a number")));
+		
+		registerConverter(String.class, BigInteger.class,
+				new NullConverter<String>("").chain(new StringToBigIntegerConverter("Must be a number")));
+		
+		Converter<String, Character> stringToCharConverter = Converter.from(
+				e -> e == null ? Result.ok(null) : Result.ok(e.charAt(0)), f -> f == null ? null : "" + f
+				);
+		
+		registerConverter(String.class, char.class, new StringLengthConverterValidator("Must be 1 character", 1, 1).chain(stringToCharConverter));
+		registerConverter(String.class, Character.class, new NullConverter<String>("").chain(new StringLengthConverterValidator("Must be 1 character", 1, 1)).chain(stringToCharConverter));
+		
 		registerConverter(LocalDateTime.class, Date.class, new LocalDateTimeToDateConverter(ZoneId.systemDefault()));
 		registerConverter(LocalDate.class, Date.class, new LocalDateToDateConverter());
 	}
