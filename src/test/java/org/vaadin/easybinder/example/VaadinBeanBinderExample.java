@@ -86,7 +86,7 @@ public class VaadinBeanBinderExample extends AbstractTest {
 
 		FormLayout f = new FormLayout();
 
-		f.addComponents(airline, flightNumber, flightSuffix, date, legType, sbt, ebt, abt, gate);
+		f.addComponents(airline, flightNumber, flightSuffix, date, legType, sbt, ebt, abt, gate, canceled);
 
 		binder.setBean(new Flight());
 
