@@ -38,6 +38,7 @@ import com.vaadin.server.Setter;
 public class BinderStatusChangeEvent extends EventObject {
 
     private final boolean hasValidationErrors;
+    private final boolean hasConversionErrors;
 
     /**
      * Create a new status change event for given {@code binder}, storing
@@ -49,11 +50,16 @@ public class BinderStatusChangeEvent extends EventObject {
      * @param hasValidationErrors
      *            the validation status associated with this event
      */
-    public BinderStatusChangeEvent(BasicBinder<?> binder, boolean hasValidationErrors) {
+    public BinderStatusChangeEvent(BasicBinder<?> binder, boolean hasConversionErrors, boolean hasValidationErrors) {
         super(binder);
-        this.hasValidationErrors = hasValidationErrors;
+        this.hasConversionErrors = hasConversionErrors;
+        this.hasValidationErrors = hasValidationErrors;        
     }
 
+    public boolean hasConversionErrors() {
+        return hasConversionErrors;
+    }        
+    
     /**
      * Gets the associated validation status.
      *
@@ -62,6 +68,10 @@ public class BinderStatusChangeEvent extends EventObject {
      */
     public boolean hasValidationErrors() {
         return hasValidationErrors;
+    }
+        
+    public boolean hasErrors() {
+    	return hasValidationErrors() || hasConversionErrors();
     }
 
     @Override

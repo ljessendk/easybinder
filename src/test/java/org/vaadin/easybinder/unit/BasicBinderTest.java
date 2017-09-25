@@ -11,7 +11,9 @@ import javax.validation.constraints.NotNull;
 import org.junit.Test;
 import org.vaadin.easybinder.BasicBinder;
 import org.vaadin.easybinder.NullConverter;
+import org.vaadin.easybinder.StringLengthConverterValidator;
 
+import com.vaadin.data.converter.StringToIntegerConverter;
 import com.vaadin.ui.TextField;
 
 public class BasicBinderTest {
@@ -20,6 +22,7 @@ public class BasicBinderTest {
 		@NotNull
 		String firstName;
 		String lastName;
+		int age;
 		
 		public String getFirstName() {
 			return firstName;
@@ -36,11 +39,20 @@ public class BasicBinderTest {
 		public void setLastName(String lastName) {
 			this.lastName = lastName;
 		}
+		
+		public int getAge() {
+			return age;
+		}
+		
+		public void setAge(int age) {
+			this.age = age;
+		}
 	}
 	
 	public class MyForm {
 		TextField firstName = new TextField();
 		TextField lastName = new TextField();
+		TextField age = new TextField();
 	}
 	
 	@Test
@@ -98,19 +110,21 @@ public class BasicBinderTest {
 	
 	boolean isStatusChanged = false;
 	boolean isValueChanged = false;
+	boolean isHasConversionErrors = false;	
 	boolean isHasValidationErrors = false;
 	
 	@Test
 	public void testAssignUnassign() {
 		MyForm form = new MyForm();
 		BasicBinder<MyEntity> binder = new BasicBinder<>();
-		binder.addStatusChangeListener(e -> {isHasValidationErrors = e.hasValidationErrors(); isStatusChanged = true;});
+		binder.addStatusChangeListener(e -> { isHasConversionErrors = e.hasConversionErrors(); isHasValidationErrors = e.hasValidationErrors(); isStatusChanged = true;});
 		binder.addValueChangeListener(e -> isValueChanged = true);
 		
 		assertFalse(isStatusChanged);
 		
 		binder.bind(form.firstName, e -> e.getFirstName(), (e,f) -> e.setFirstName(f), "firstName", new NullConverter<>(""));
 		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName", new NullConverter<>(""));
+		binder.bind(form.age, MyEntity::getAge, MyEntity::setAge, "age", new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToIntegerConverter("Must be a number")));
 		
 		assertTrue(isStatusChanged);
 		isStatusChanged = false;
@@ -142,7 +156,15 @@ public class BasicBinderTest {
 		assertTrue(isValueChanged);
 		assertTrue(isStatusChanged);
 		assertFalse(isHasValidationErrors);		
+		assertFalse(isHasConversionErrors);				
 		assertTrue(binder.getHasChanges());
+		
+		isStatusChanged = false;
+		form.age.setValue("nan");
+		assertTrue(isStatusChanged);
+		assertTrue(isHasConversionErrors);
+		assertFalse(isHasValidationErrors);
+		
 		
 		binder.removeBean();
 	}

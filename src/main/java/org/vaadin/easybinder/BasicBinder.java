@@ -78,6 +78,8 @@ public class BasicBinder<BEAN> {
 					if(fieldToBean(binder.getBean())) {
 						binder.validate();
 						binder.fireValueChangeEvent(e);
+					} else {
+						binder.fireStatusChangeEvent();;
 					}
 				}
 			});
@@ -163,17 +165,19 @@ public class BasicBinder<BEAN> {
 
 	protected EventRouter eventRouter;
 	
+	protected boolean updatingBean = false;
+	
 	public BasicBinder() {
 		validate();
 	}
 
-	public void setBean(BEAN bean) {
+	public void setBean(BEAN bean) {		
 		this.bean = bean;
 
-		if(bean == null) {
-			
-		} else {
+		if(bean != null) {
+			updatingBean = true;			
 			bindings.forEach(e -> e.beanToField(bean));
+			updatingBean = false;
 		}
 		
 		validate();
@@ -235,7 +239,7 @@ public class BasicBinder<BEAN> {
 			}
 		}
 		
-		fireStatusChangeEvent(false);		
+		fireStatusChangeEvent();
 
 		return binding;
 	}
@@ -299,7 +303,7 @@ public class BasicBinder<BEAN> {
 
 		conversionViolations.entrySet().stream().forEach(e -> handleError(e.getKey(), e.getValue()));
 
-		fireStatusChangeEvent(!constraintViolations.isEmpty());		
+		fireStatusChangeEvent();		
 	}
 
 	protected void setConversionError(HasValue<?> field, String message) {
@@ -426,12 +430,14 @@ public class BasicBinder<BEAN> {
     }
     
     protected <V> void fireValueChangeEvent(ValueChangeEvent<V> event) {
-        getEventRouter().fireEvent(event);
+    	if(!updatingBean) {
+    		getEventRouter().fireEvent(event);
+    	}
     }
     
-    protected void fireStatusChangeEvent(boolean hasValidationErrors) {
+    protected void fireStatusChangeEvent() {
         getEventRouter()
-                .fireEvent(new BinderStatusChangeEvent(this, hasValidationErrors));
+                .fireEvent(new BinderStatusChangeEvent(this, !conversionViolations.isEmpty(), !constraintViolations.isEmpty()));
     }    
     
 }
