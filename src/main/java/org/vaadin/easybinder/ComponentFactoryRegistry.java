@@ -157,7 +157,9 @@ public class ComponentFactoryRegistry {
 					new Object[] { field, classToTest });			
 			classToTest = classToTest.getSuperclass();
 		}
-		
-		return Optional.empty();
+
+		log.log(Level.INFO, "No match for field=<{1}> with type=<{2}>, generating a text field", new Object[] { field, field.getType() });
+		return Optional.of(new TextField(SharedUtil.camelCaseToHumanFriendly(field.getName())));
+		//return Optional.empty();
 	}
 }

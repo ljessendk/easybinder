@@ -1,9 +1,16 @@
 package org.vaadin.easybinder.unit;
 
+import static info.solidsoft.mockito.java8.AssertionMatcher.assertArg;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -18,6 +25,7 @@ import javax.validation.ValidatorFactory;
 
 import org.junit.Test;
 import org.vaadin.easybinder.BasicBinder;
+import org.vaadin.easybinder.BinderStatusChangeListener;
 
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TextField;
@@ -80,6 +88,9 @@ public class BasicBinderBeanLevelTest {
 
 		BasicBinder<MyEntity> binder = new BasicBinder<>();
 
+		BinderStatusChangeListener statusChangeListener = mock(BinderStatusChangeListener.class);
+		binder.addStatusChangeListener(statusChangeListener);
+		
 		binder.bind(field1, d -> d.getS1() == null ? "" : d.getS1(), (e, f) -> e.setS1("".equals(f) ? null : f), "s1");
 		binder.bind(field2, d -> d.getS2() == null ? "" : d.getS2(), (e, f) -> e.setS2("".equals(f) ? null : f), "s2");
 
@@ -89,6 +100,8 @@ public class BasicBinderBeanLevelTest {
 		 */
 		binder.setStatusLabel(statusLabel);
 
+		reset(statusChangeListener);
+		
 		MyEntity bean = new MyEntity();
 
 		binder.setBean(bean);
@@ -96,5 +109,18 @@ public class BasicBinderBeanLevelTest {
 		assertFalse(validator.validate(bean).isEmpty());
 		assertFalse(binder.isValid());
 		assertEquals("At least one field must be set", statusLabel.getValue());
+		
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));
+
+		reset(statusChangeListener);
+		
+		field2.setValue("Test");
+
+		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
+				
+		assertTrue(validator.validate(bean).isEmpty());
+		assertTrue(binder.isValid());
+		assertEquals("", statusLabel.getValue());
+		
 	}
 }

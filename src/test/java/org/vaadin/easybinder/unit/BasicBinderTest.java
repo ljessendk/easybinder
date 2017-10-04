@@ -3,6 +3,13 @@ package org.vaadin.easybinder.unit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.stream.Collectors;
 
@@ -10,11 +17,15 @@ import javax.validation.constraints.NotNull;
 
 import org.junit.Test;
 import org.vaadin.easybinder.BasicBinder;
+import org.vaadin.easybinder.BasicBinder.EasyBinding;
+import org.vaadin.easybinder.BinderStatusChangeListener;
 import org.vaadin.easybinder.NullConverter;
 import org.vaadin.easybinder.StringLengthConverterValidator;
 
+import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.data.converter.StringToIntegerConverter;
 import com.vaadin.ui.TextField;
+import static info.solidsoft.mockito.java8.AssertionMatcher.assertArg;
 
 public class BasicBinderTest {
 	
@@ -67,7 +78,7 @@ public class BasicBinderTest {
 		assertEquals(form.firstName, binder.getFieldForProperty("firstName").get());
 		assertEquals(form.lastName, binder.getFieldForProperty("lastName").get());
 		
-		binder.unbind(form.firstName);
+		binder.removeBinding(form.firstName);
 		
 		assertEquals(1, binder.getFields().collect(Collectors.toList()).size());
 
@@ -82,6 +93,27 @@ public class BasicBinderTest {
 		
 		assertFalse(binder.getFieldForProperty("firstName").isPresent());
 		assertFalse(binder.getFieldForProperty("lastName").isPresent());		
+		
+		EasyBinding<MyEntity, ?, ?> b1 = binder.bind(form.firstName, e -> e.getFirstName(), (e,f) -> e.setFirstName(f), "firstName");
+		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName");
+
+		assertEquals(2, binder.getFields().collect(Collectors.toList()).size());
+
+		binder.getBinding("lastName").ifPresent(e -> binder.removeBinding(e));
+		
+		assertEquals(1, binder.getFields().collect(Collectors.toList()).size());
+				
+		binder.removeBinding(b1);
+		
+		assertEquals(0, binder.getFields().collect(Collectors.toList()).size());		
+		
+		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName");
+
+		assertEquals(1, binder.getFields().collect(Collectors.toList()).size());
+		
+		binder.removeBinding("lastName");
+
+		assertEquals(0, binder.getFields().collect(Collectors.toList()).size());
 	}
 
 	@Test
@@ -89,11 +121,14 @@ public class BasicBinderTest {
 		MyForm form = new MyForm();
 		BasicBinder<MyEntity> binder = new BasicBinder<>();
 		MyEntity entity = new MyEntity();
-		binder.setBean(entity);
+		entity.setLastName("Doe");
 		binder.bind(form.firstName, e -> e.getFirstName(), (e,f) -> e.setFirstName(f), "firstName", new NullConverter<>(""));
-		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName", new NullConverter<>(""));
+		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName", new NullConverter<>(""));		
+		binder.setBean(entity);
 
 		assertFalse(binder.isValid());	
+		
+		assertEquals("Doe", form.lastName.getValue());		
 	}	
 	
 	@Test
@@ -108,27 +143,29 @@ public class BasicBinderTest {
 		assertFalse(binder.isValid());			
 	}
 	
-	boolean isStatusChanged = false;
-	boolean isValueChanged = false;
-	boolean isHasConversionErrors = false;	
-	boolean isHasValidationErrors = false;
 	
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testAssignUnassign() {
 		MyForm form = new MyForm();
 		BasicBinder<MyEntity> binder = new BasicBinder<>();
-		binder.addStatusChangeListener(e -> { isHasConversionErrors = e.hasConversionErrors(); isHasValidationErrors = e.hasValidationErrors(); isStatusChanged = true;});
-		binder.addValueChangeListener(e -> isValueChanged = true);
+		BinderStatusChangeListener statusChangeListener = mock(BinderStatusChangeListener.class);
+		ValueChangeListener<?> valueChangeListener = mock(ValueChangeListener.class);
+		binder.addStatusChangeListener(statusChangeListener);
+		binder.addValueChangeListener(valueChangeListener);
 		
-		assertFalse(isStatusChanged);
+		verify(statusChangeListener, never()).statusChange(any());
 		
 		binder.bind(form.firstName, e -> e.getFirstName(), (e,f) -> e.setFirstName(f), "firstName", new NullConverter<>(""));
 		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName", new NullConverter<>(""));
 		binder.bind(form.age, MyEntity::getAge, MyEntity::setAge, "age", new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToIntegerConverter("Must be a number")));
+
+		//verify(statusChangeListener, never()).statusChange(any());
+		//verify(statusChangeListener, times(1)).statusChange(any());
+		verify(statusChangeListener, atLeast(1)).statusChange(any());
+		verify(valueChangeListener, never()).valueChange(any());
 		
-		assertTrue(isStatusChanged);
-		isStatusChanged = false;
-		assertFalse(isValueChanged);
+		reset(statusChangeListener);
 		
 		MyEntity e = new MyEntity();
 				
@@ -136,38 +173,111 @@ public class BasicBinderTest {
 
 		assertFalse(binder.isValid());
 		assertFalse(binder.getHasChanges());
+
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));
+		verify(valueChangeListener, never()).valueChange(any());
 		
-		assertTrue(isStatusChanged);
-		assertTrue(isHasValidationErrors);
-		isStatusChanged = false;
-		assertFalse(isValueChanged);
+		reset(statusChangeListener);
 		
 		form.lastName.setValue("giraf");
-		
-		assertTrue(isValueChanged);
-		assertTrue(isStatusChanged);
-		assertTrue(isHasValidationErrors);		
+
+		verify(valueChangeListener, times(1)).valueChange(any());
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));		
 		assertTrue(binder.getHasChanges());
-		isValueChanged = false;
-		isStatusChanged = false;
+		
+		reset(valueChangeListener);
+		reset(statusChangeListener);
 		
 		form.firstName.setValue("giraf");
+
+		verify(valueChangeListener, times(1)).valueChange(any());
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasConversionErrors())));
 		
-		assertTrue(isValueChanged);
-		assertTrue(isStatusChanged);
-		assertFalse(isHasValidationErrors);		
-		assertFalse(isHasConversionErrors);				
 		assertTrue(binder.getHasChanges());
+
+		reset(valueChangeListener);
+		reset(statusChangeListener);
 		
-		isStatusChanged = false;
 		form.age.setValue("nan");
-		assertTrue(isStatusChanged);
-		assertTrue(isHasConversionErrors);
-		assertFalse(isHasValidationErrors);
 		
+		//verify(valueChangeListener, times(1)).valueChange(any());
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasConversionErrors())));
+
+		reset(statusChangeListener);
 		
 		binder.removeBean();
+		
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasConversionErrors())));		
+
+		reset(statusChangeListener);
+		
+		//form.age.setValue("100");
+
+		//verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasConversionErrors())));		
+		
 	}
 	
+	@Test
+	public void testReadonly() {
+		MyForm form = new MyForm();
+		BasicBinder<MyEntity> binder = new BasicBinder<>();
+		
+		assertFalse(form.firstName.isReadOnly());
+		assertFalse(form.lastName.isReadOnly());
+		assertFalse(form.age.isReadOnly());
+		
+		binder.bind(form.firstName, e -> e.getFirstName(), (e,f) -> e.setFirstName(f), "firstName", new NullConverter<>(""));
+		binder.bind(form.lastName, MyEntity::getLastName, MyEntity::setLastName, "lastName", new NullConverter<>(""));
+		binder.bind(form.age, MyEntity::getAge, MyEntity::setAge, "age", new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToIntegerConverter("Must be a number")));
 
+		binder.setReadonly(true);
+		
+		assertTrue(form.firstName.isReadOnly());
+		assertTrue(form.lastName.isReadOnly());
+		assertTrue(form.age.isReadOnly());
+		
+		binder.setReadonly(false);
+		
+		assertFalse(form.firstName.isReadOnly());
+		assertFalse(form.lastName.isReadOnly());
+		assertFalse(form.age.isReadOnly());		
+	}	
+	
+	@Test
+	public void testReadOnlyBinding() {
+		MyForm form = new MyForm();
+		BasicBinder<MyEntity> binder = new BasicBinder<>();
+
+		MyEntity entity = new MyEntity();
+		
+		assertFalse(form.firstName.isReadOnly());
+		assertFalse(form.lastName.isReadOnly());
+		assertFalse(form.age.isReadOnly());
+		
+		binder.bind(form.firstName, e -> e.getFirstName(), null, "firstName", new NullConverter<>(""));
+		binder.bind(form.lastName, MyEntity::getLastName, null, "lastName", new NullConverter<>(""));
+		binder.bind(form.age, MyEntity::getAge, null, "age", new StringLengthConverterValidator("Must be a number", 1, null).chain(new StringToIntegerConverter("Must be a number")));
+		
+		entity.setFirstName("John");
+		entity.setLastName("Doe");
+		entity.setAge(50);
+
+		binder.setBean(entity);
+
+		form.firstName.setValue("Carl");
+		assertEquals("John", entity.getFirstName());
+		
+		assertTrue(form.firstName.isReadOnly());
+		assertTrue(form.lastName.isReadOnly());
+		assertTrue(form.age.isReadOnly());
+		
+		binder.setReadonly(false);
+		
+		assertTrue(form.firstName.isReadOnly());
+		assertTrue(form.lastName.isReadOnly());
+		assertTrue(form.age.isReadOnly());
+	}	
 }

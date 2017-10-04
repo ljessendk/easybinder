@@ -55,7 +55,7 @@ public abstract class BaseTests {
 	protected abstract void setStatusLabel(Label label);
 
 	static MyForm form = new MyForm();
-
+	
 	@Test
 	public void testBinding() {
 		setBean(new Flight());
@@ -287,9 +287,9 @@ public abstract class BaseTests {
 		form.gate.setValue("");
 		assertNotNull(form.gate.getComponentError());
 		assertFalse(isValid());
-		form.sbt.setValue(null);
 		form.ebt.setValue(null);
-		form.abt.setValue(null);
+		form.abt.setValue(null);		
+		form.sbt.setValue(null);
 		assertTrue(isValid());
 		assertNull(form.gate.getComponentError());
 	}

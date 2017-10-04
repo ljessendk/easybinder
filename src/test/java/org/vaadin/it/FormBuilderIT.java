@@ -1,6 +1,6 @@
 package org.vaadin.it;
 
-import org.junit.Test;
+//import org.junit.Test;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.vaadin.addonhelpers.automated.AbstractWebDriverCase;
 import org.vaadin.addonhelpers.automated.VaadinConditions;
@@ -15,7 +15,7 @@ import org.openqa.selenium.firefox.FirefoxDriver;
  */
 public class FormBuilderIT extends AbstractWebDriverCase {
 
-	@Test
+	//@Test
 	public void testJavaScriptComponentWithBrowser() throws InterruptedException {
 
 		startBrowser();

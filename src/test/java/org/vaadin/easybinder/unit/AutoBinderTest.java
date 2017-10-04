@@ -51,6 +51,16 @@ public class AutoBinderTest {
 		}
 	}	
 	
+	public static class Unknown {
+		String name = "aaa";
+		int id = 10;
+		
+		@Override
+		public String toString() {
+			return name+id;
+		}
+	}
+	
 	
 	public static class MyEntity {
 		String street;
@@ -64,6 +74,10 @@ public class AutoBinderTest {
 		
 		Wheel spare = new Wheel();
 
+		int numberReadOnly;
+		
+		Unknown unknown = new Unknown();
+		
 		public String getStreet() {
 			return street;
 		}
@@ -103,8 +117,20 @@ public class AutoBinderTest {
 		public void setSpare(Wheel spare) {
 			this.spare = spare;
 		}
-	}
 
+		public int getNumberReadOnly() {
+			return numberReadOnly;
+		}
+		
+		public Unknown getUnknown() {
+			return unknown;
+		}
+		
+		public void setUnknown(Unknown unknown) {
+			this.unknown = unknown;
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testBuildAndBind() {
@@ -119,6 +145,7 @@ public class AutoBinderTest {
 		assertTrue(binder.getFieldForProperty("number2").isPresent());
 		assertTrue(binder.getFieldForProperty("car.frontLeft.tire.type").isPresent());
 		assertTrue(binder.getFieldForProperty("spare.tire.type").isPresent());
+		assertTrue(binder.getFieldForProperty("unknown").isPresent());
 		
 
 		AbstractField<String> numberField = (AbstractField<String>) binder.getFieldForProperty("number").get();
@@ -140,6 +167,6 @@ public class AutoBinderTest {
 
 		numberField2.setValue("");
 		assertNotNull(numberField2.getComponentError());
-	}
-
+	}	
+	
 }

@@ -13,6 +13,7 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
 import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.RadioButtonGroup;
 import com.vaadin.ui.TextField;
 
@@ -41,9 +42,12 @@ public class AutomaticPropertyBindingExample extends AbstractTest {
 		binder.bindInstanceFields(this);
 
 		FormLayout f = new FormLayout();
-
 		f.addComponents(airline, flightNumber, flightSuffix, date, legType, sbt, ebt, abt, gate, canceled);
 
+		Label statusLabel = new Label();
+		binder.setStatusLabel(statusLabel);		
+		f.addComponents(statusLabel);	
+		
 		binder.setBean(new Flight());
 
 		return f;

@@ -39,6 +39,7 @@ import com.vaadin.data.PropertySet;
 import com.vaadin.data.RequiredFieldConfigurator;
 import com.vaadin.data.ValueProvider;
 import com.vaadin.server.Setter;
+import com.vaadin.util.ReflectTools;
 
 public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 	protected Class<BEAN> clazz;
@@ -64,6 +65,8 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
 			String propertyName) {
 
+		boolean readOnly = false;
+		
 		Objects.requireNonNull(propertyName, "Property name cannot be null");
 		// checkUnbound();
 
@@ -87,8 +90,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 			if (converter != null) {
 				log.log(Level.INFO, "Converter for {0}->{1} found by lookup",
 						new Object[] { fieldTypeClass.get(), modelTypeClass });
-			}
-			if (converter == null && fieldTypeClass.get().equals(modelTypeClass)) {
+			} else if (fieldTypeClass.get().equals(modelTypeClass)) {
 				if (modelTypeClass.isPrimitive()) {
 					converter = Converter.identity();
 					log.log(Level.INFO, "Converter for primitive {0}->{1} found by identity",
@@ -98,33 +100,44 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 					log.log(Level.INFO, "Converter for non-primitive {0}->{1} found by identity",
 							new Object[] { fieldTypeClass.get(), modelTypeClass });
 				}
+			} else if (ReflectTools.convertPrimitiveType(fieldTypeClass.get()).equals(ReflectTools.convertPrimitiveType(modelTypeClass))) {
+				log.log(Level.INFO, "Converter for {0}->{1} found by assignment");
+				converter = createConverter(ReflectTools.convertPrimitiveType(fieldTypeClass.get()));
+			} else if (fieldTypeClass.get().equals(String.class)) {
+				log.log(Level.INFO, "Using toString() converter");
+				converter = createStringConverter();
+				readOnly = true;
 			}
 		} 
-		
+				
 		if(converter == null) {
 			// Uses definition.getType() to ensure that the object type and not primitive type is returned.
 			converter = createConverter(definition.getType());
 			log.log(Level.WARNING, "Converter for {0} generated", new Object[] { modelTypeClass });
 		}
 
-		return bind(field, propertyName, converter);
+		return bind(field, propertyName, converter, readOnly);
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
 			String propertyName, Converter<PRESENTATION, ?> converter) {
+		return bind(field, propertyName, converter, false);
+	}
+	
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
+			String propertyName, Converter<PRESENTATION, ?> converter, boolean readOnly) {
 		Objects.requireNonNull(converter);
 		Objects.requireNonNull(propertyName, "Property name cannot be null");
 		// checkUnbound();
-
+		
 		PropertyDefinition<BEAN, ?> definition = propertySet.getProperty(propertyName)
 				.orElseThrow(() -> new IllegalArgumentException(
 						"Could not resolve property name " + propertyName + " from " + propertySet));
 
 		ValueProvider<BEAN, ?> getter = definition.getGetter();
-		Setter<BEAN, ?> setter = definition.getSetter().orElse((bean, value) -> {
-			// Setter ignores value
-		});
+		Setter<BEAN, ?> setter = readOnly ? null : definition.getSetter().orElse(null);
 
 		EasyBinding<BEAN, PRESENTATION, MODEL> binding = bind(field, (ValueProvider) getter, (Setter) setter,
 				propertyName, (Converter) converter);
@@ -141,22 +154,6 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 		return binding;
 	}
 
-	@SuppressWarnings("unchecked")
-	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> getConverter(Optional<Class<PRESENTATION>> fieldType,
-			Class<MODEL> propertyType) {
-		if (fieldType.isPresent()) {
-			Converter<PRESENTATION, MODEL> converter = globalConverterRegistry.getConverter(fieldType.get(),
-					propertyType);
-			if (converter != null) {
-				return converter;
-			} else if (fieldType.get().equals(propertyType)) {
-				return (Converter<PRESENTATION, MODEL>) Converter.identity();
-			}
-		}
-
-		return createConverter(propertyType);
-	}
-
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createConverter(Class<MODEL> propertyType) {
 		return (Converter) Converter.from(fieldValue -> propertyType.cast(fieldValue),
@@ -165,6 +162,14 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 				});
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createStringConverter() {
+		return (Converter) Converter.from(null, fieldValue -> fieldValue.toString(), exception -> {
+					throw new RuntimeException(exception);
+				});
+	}	
+	
+	
 	@SuppressWarnings("unchecked")
 	protected <PRESENTATION> Optional<Class<PRESENTATION>> getFieldTypeForField(HasValue<PRESENTATION> field) {
 		// Try to find the field type using reflection

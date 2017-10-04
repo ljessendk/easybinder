@@ -1,21 +1,25 @@
 package org.vaadin.easybinder.unit;
 
+import static info.solidsoft.mockito.java8.AssertionMatcher.assertArg;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
 import javax.validation.constraints.NotNull;
 
 import org.hibernate.validator.group.GroupSequenceProvider;
 import org.hibernate.validator.spi.group.DefaultGroupSequenceProvider;
 import org.junit.Test;
 import org.vaadin.easybinder.BasicBinder;
+import org.vaadin.easybinder.BinderStatusChangeListener;
 
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TextField;
@@ -76,9 +80,6 @@ public class BasicBinderGroupingTest {
 		}
 	}
 
-	ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-	Validator validator = factory.getValidator();
-
 	@Test
 	public void testGroupValidationGroupProvider() {
 		TextField field1 = new TextField();
@@ -87,6 +88,9 @@ public class BasicBinderGroupingTest {
 
 		BasicBinder<MyEntity> binder = new BasicBinder<>();
 
+		BinderStatusChangeListener statusChangeListener = mock(BinderStatusChangeListener.class);
+		binder.addStatusChangeListener(statusChangeListener);
+				
 		binder.bind(field1, d -> d.getS1() == null ? "" : d.getS1(), (e, f) -> e.setS1("".equals(f) ? null : f), "s1");
 		binder.bind(field2, d -> d.getS2() == null ? "" : d.getS2(), (e, f) -> e.setS2("".equals(f) ? null : f), "s2");
 
@@ -96,24 +100,41 @@ public class BasicBinderGroupingTest {
 		 */
 		binder.setStatusLabel(statusLabel);
 
+		reset(statusChangeListener);
+		
 		MyEntity bean = new MyEntity();
 
-		assertTrue(validator.validate(bean).isEmpty());
-
+		assertTrue(binder.isValid());
+		
 		bean.setS1("test");
 
-		assertFalse(validator.validate(bean).isEmpty());
-
-		assertFalse(validator.validateValue(MyEntity.class, "s2", null, MyGroup.class).isEmpty());
-
+		assertTrue(binder.isValid());
+		
 		binder.setBean(bean);
+
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));
 
 		assertFalse(binder.isValid());
 
+		reset(statusChangeListener);
+		
 		field1.setValue("");
 
 		assertTrue(binder.isValid());
+		
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
+		
+		reset(statusChangeListener);
+		
+		field1.setValue("test");
+		
+		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));		
 
+		reset(statusChangeListener);
+		
+		binder.removeBean();
+		
+		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));		
 	}
 
 	@Test

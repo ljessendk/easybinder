@@ -18,6 +18,7 @@
  */
 package org.vaadin.easybinder;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -34,10 +35,13 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 
-import com.vaadin.data.Binder;
+import com.vaadin.data.Binder.Binding;
+import com.vaadin.data.BindingValidationStatus;
+import com.vaadin.data.BindingValidationStatus.Status;
 import com.vaadin.data.Converter;
 import com.vaadin.data.HasValue;
 import com.vaadin.data.Result;
+import com.vaadin.data.ValidationResult;
 import com.vaadin.data.ValueContext;
 import com.vaadin.data.ValueProvider;
 import com.vaadin.data.HasValue.ValueChangeEvent;
@@ -52,21 +56,23 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
 
+@SuppressWarnings("serial")
 public class BasicBinder<BEAN> {
 
-	public static class EasyBinding<BEAN, FIELDVALUE, TARGET> {
+	public static class EasyBinding<BEAN, FIELDVALUE, TARGET> implements Binding<BEAN, FIELDVALUE> {
 		protected final HasValue<FIELDVALUE> field;
 		protected final ValueProvider<BEAN, TARGET> getter;
 		protected final Setter<BEAN, TARGET> setter;
-		protected final String property;
+		protected final Optional<String> property;
 
 		protected final Converter<FIELDVALUE, TARGET> converterValidatorChain;
-		protected final BasicBinder<BEAN> binder;
-		protected final Registration registration;
+		protected Registration registration;
 
+		protected Optional<String> conversionError = Optional.empty();
+		protected Optional<String> validationError = Optional.empty();		
+		
 		public EasyBinding(BasicBinder<BEAN> binder, HasValue<FIELDVALUE> field, ValueProvider<BEAN, TARGET> getter,
-				Setter<BEAN, TARGET> setter, String property, Converter<FIELDVALUE, TARGET> converterValidatorChain) {
-			this.binder = binder;
+				Setter<BEAN, TARGET> setter, Optional<String> property, Converter<FIELDVALUE, TARGET> converterValidatorChain) {
 			this.field = field;
 			this.getter = getter;
 			this.setter = setter;
@@ -75,16 +81,21 @@ public class BasicBinder<BEAN> {
 			
 			registration = field.addValueChangeListener(e -> {
 				if (binder.getBean() != null) {
-					if(fieldToBean(binder.getBean())) {
-						binder.validate();
+					if(binder.fieldToBean(this)) {
 						binder.fireValueChangeEvent(e);
-					} else {
-						binder.fireStatusChangeEvent();;
-					}
+					}					
 				}
 			});
+			
+			if(setter == null) {
+				field.setReadOnly(true);
+			}
 		}
 
+		public void setReadOnly(boolean readOnly) {
+			field.setReadOnly(setter == null || readOnly);
+		}
+		
 		public void remove() {
 			registration.remove();
 		}
@@ -94,16 +105,21 @@ public class BasicBinder<BEAN> {
 		}
 
 		public boolean fieldToBean(BEAN bean) {
+			if(setter == null || field.isReadOnly()) {
+				return false;
+			}
 			Result<TARGET> result = converterValidatorChain.convertToModel(field.getValue(), createValueContext());
-			result.ifError(e -> binder.setConversionError(field, e));
+			result.ifError(e -> setConversionError(e));
 			result.ifOk(e -> {
-				binder.clearConversionError(field);
-				setter.accept(bean, e);
-				binder.hasChanges = true;				
+				clearConversionError();
+				if(setter != null) {
+					setter.accept(bean, e);
+				}
 			});
 			return !result.isError();
 		}
 
+		@Override
 		public HasValue<FIELDVALUE> getField() {
 			return field;
 		}
@@ -139,24 +155,78 @@ public class BasicBinder<BEAN> {
 			return l;
 		}
 
-		public String getProperty() {
+		public Optional<String> getProperty() {
 			return property;
 		}
+		
+		public boolean hasValidationError() {
+			return validationError.isPresent();
+		}
+		
+		public boolean hasConversionError() {
+			return conversionError.isPresent();
+		}
+		
+		public boolean hasError() {
+			return hasValidationError() || hasConversionError();
+		}
 
+		@Override
+		public BindingValidationStatus<FIELDVALUE> validate() {
+			return new BindingValidationStatus<FIELDVALUE>(
+					this, 
+					hasError() ? Status.ERROR : Status.OK,
+					conversionError.isPresent() ? ValidationResult.error(conversionError.get()) : 
+						validationError.isPresent() ? ValidationResult.error(validationError.get()) : 
+							ValidationResult.ok()
+					);
+		}
+		
+		protected void setConversionError(String errorMessage) {
+			Objects.requireNonNull(errorMessage);
+			conversionError = Optional.of(errorMessage);
+		}
+		
+		protected void clearConversionError() {
+			conversionError = Optional.empty();
+		}
+		
+		public Optional<String> getConversionError() {
+			return conversionError;
+		}
+		
+		public void setValidationError(String errorMessage) {
+			Objects.requireNonNull(errorMessage);
+			validationError = Optional.of(errorMessage);
+		}
+		
+		public void clearValidationError() {
+			validationError = Optional.empty();
+		}		
+		
+		public Optional<String> getValidationError() {
+			return validationError;
+		}
+		
+		public Optional<String> getError() {
+			if(conversionError.isPresent()) {
+				return conversionError;
+			} else {
+				return validationError;
+			}
+		}
+		
 	}
 
 	protected BEAN bean;
 
 	protected Label statusLabel;
 
-	protected Map<String, HasValue<?>> validationErrorMap = new HashMap<String, HasValue<?>>();
-
-	protected List<EasyBinding<BEAN, ?, ?>> bindings = new LinkedList<EasyBinding<BEAN, ?, ?>>();
+	protected List<EasyBinding<BEAN, ?, ?>> bindings = new LinkedList<>();
+	protected Map<String, EasyBinding<BEAN, ?, ?>> propertyToBindingMap = new HashMap<>();
 
 	protected Set<ConstraintViolation<BEAN>> constraintViolations;
 	
-	protected Map<HasValue<?>, String> conversionViolations = new HashMap<>();
-
 	protected boolean hasChanges = false;
 	
 	protected Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
@@ -164,23 +234,22 @@ public class BasicBinder<BEAN> {
 	protected Class<?>[] groups = new Class<?>[0];
 
 	protected EventRouter eventRouter;
-	
-	protected boolean updatingBean = false;
-	
+		
 	public BasicBinder() {
 		validate();
 	}
 
 	public void setBean(BEAN bean) {		
-		this.bean = bean;
+		this.bean = null;
 
 		if(bean != null) {
-			updatingBean = true;			
 			bindings.forEach(e -> e.beanToField(bean));
-			updatingBean = false;
 		}
 		
+		this.bean = bean;
 		validate();
+		bindings.forEach(e -> handleError(e.getField(), e.getError()));
+		fireStatusChangeEvent();
 		hasChanges = false;
 	}
 
@@ -225,21 +294,34 @@ public class BasicBinder<BEAN> {
 		
 		// Register as binding
 		EasyBinding<BEAN, FIELDVALUE, TARGET> binding = new EasyBinding<BEAN, FIELDVALUE, TARGET>(this, field, getter,
-				setter, property, converter);
+				setter, Optional.ofNullable(property), converter);
+		
+		// TODO: remove from binding
+		/*
+		binding.registration = field.addValueChangeListener(e -> {
+			if (getBean() != null) {
+				if(fieldToBean(binding)) {
+					fireValueChangeEvent(e);
+				}					
+			}
+		});
+		*/
+		
 		bindings.add(binding);
 
 		// Add property to validation error map
 		if (property != null) {
-			validationErrorMap.put(property, field);
+			propertyToBindingMap.put(property, binding);
 		}
 
 		if (getBean() != null) {
-			if(binding.fieldToBean(getBean())) {
-				validate();
+			if(fieldToBean(binding)) {
+				// TODO: should this be fired?
+				//fireValueChangeEvent(e);
 			}
+		} else {
+			fireStatusChangeEvent();
 		}
-		
-		fireStatusChangeEvent();
 
 		return binding;
 	}
@@ -247,26 +329,34 @@ public class BasicBinder<BEAN> {
 	public void unbind() {
 		while(!bindings.isEmpty()) {
 			EasyBinding<BEAN, ?, ?> binding = bindings.remove(0);
+			binding.getProperty().ifPresent(e -> propertyToBindingMap.remove(e));
 			binding.remove();
-			validationErrorMap.remove(binding.getProperty());
 		}
 	}
 	
-	public void unbind(HasValue<?> field) {		
-		bindings.stream().filter(e -> e.getField().equals(field)).findFirst().ifPresent(e -> unbind(e));
+	public void removeBinding(HasValue<?> field) {		
+		bindings.stream().filter(e -> e.getField().equals(field)).findFirst().ifPresent(e -> clearBinding(e));
+		validate();
+	}
+
+	public <FIELDVALUE, TARGET> void removeBinding(EasyBinding<BEAN, FIELDVALUE, TARGET> binding) {
+		clearBinding(binding); 
 		validate();
 	}
 	
-	protected <FIELDVALUE, TARGET> void unbind(EasyBinding<BEAN, FIELDVALUE, TARGET> binding) {
+	public void removeBinding(String propertyValue) {
+		Objects.requireNonNull(propertyValue);
+		Optional.ofNullable(propertyToBindingMap.get(propertyValue)).ifPresent(e -> removeBinding(e));
+		validate();
+	}
+		
+	protected <FIELDVALUE, TARGET> void clearBinding(EasyBinding<BEAN, FIELDVALUE, TARGET> binding) {
 		if (bindings.remove(binding)) {
 			binding.remove();
 		}
-
-		if (binding.getProperty() != null) {
-			validationErrorMap.remove(binding.getProperty());
-		}
+		binding.getProperty().ifPresent(e -> propertyToBindingMap.remove(e));
 	}
-
+	
 	public Stream<HasValue<?>> getFields() {
 		return bindings.stream().map(e -> e.getField());
 	}
@@ -281,41 +371,28 @@ public class BasicBinder<BEAN> {
 			}
 		} else {
 			// Field validation error
-			HasValue<?> g = validationErrorMap.get(property);
-			if (g != null) {
-				handleError(g, f.apply(v));
-			}
+			Optional.ofNullable(propertyToBindingMap.get(property)).ifPresent(e -> e.setValidationError(f.apply(v)));
 		}
 	}
 
 	protected void validate() {
 		// Clear validation errors
 		getStatusLabel().ifPresent(e -> e.setValue(""));
-		validationErrorMap.values().stream().forEach(e -> clearError(e));
 
+		// Clear all validation errors
+		propertyToBindingMap.values().stream().forEach(e -> e.clearValidationError());
+		
 		// Validate and set validation errors
 		if (getBean() != null) {
 			constraintViolations = validator.validate(getBean(), groups);
 			constraintViolations.stream().forEach(e -> handleConstraintViolations(e, f -> f.getMessage()));
+			// Handle errors
+			propertyToBindingMap.values().stream().forEach(e -> handleError(e.getField(), e.getError()));
 		} else {
 			constraintViolations = new HashSet<ConstraintViolation<BEAN>>();
 		}
-
-		conversionViolations.entrySet().stream().forEach(e -> handleError(e.getKey(), e.getValue()));
-
-		fireStatusChangeEvent();		
 	}
-
-	protected void setConversionError(HasValue<?> field, String message) {
-		conversionViolations.put(field, message);
-		handleError(field, message);
-	}
-
-	protected void clearConversionError(HasValue<?> field) {
-		conversionViolations.remove(field);
-		clearError(field);
-	}
-
+	
 	/**
 	 * Clears the error condition of the given field, if any. The default
 	 * implementation clears the
@@ -341,6 +418,14 @@ public class BasicBinder<BEAN> {
 		return Optional.ofNullable(statusLabel);
 	}
 
+	protected void handleError(HasValue<?> field, Optional<String> error) {
+		if(error.isPresent()) {
+			setError(field, error.get());
+		} else {
+			clearError(field);
+		}
+	}
+	
 	/**
 	 * Handles a validation error emitted when trying to write the value of the
 	 * given field. The default implementation sets the
@@ -352,7 +437,7 @@ public class BasicBinder<BEAN> {
 	 * @param error
 	 *            the error message to set
 	 */
-	protected void handleError(HasValue<?> field, String error) {
+	protected void setError(HasValue<?> field, String error) {
 		if (field instanceof AbstractComponent) {
 			((AbstractComponent) field).setComponentError(new UserError(error));
 		}
@@ -363,7 +448,7 @@ public class BasicBinder<BEAN> {
 	}
 
 	public Optional<HasValue<?>> getFieldForProperty(String propertyName) {
-		return Optional.ofNullable(validationErrorMap.get(propertyName));
+		return Optional.ofNullable(propertyToBindingMap.get(propertyName)).map(e -> e.getField());
 	}
 	
     /**
@@ -430,14 +515,48 @@ public class BasicBinder<BEAN> {
     }
     
     protected <V> void fireValueChangeEvent(ValueChangeEvent<V> event) {
-    	if(!updatingBean) {
-    		getEventRouter().fireEvent(event);
-    	}
+    	hasChanges = true;
+  		getEventRouter().fireEvent(event);
     }
     
     protected void fireStatusChangeEvent() {
+    	boolean hasConversionErrors = bindings.stream().anyMatch(e -> e.hasConversionError());
         getEventRouter()
-                .fireEvent(new BinderStatusChangeEvent(this, !conversionViolations.isEmpty(), !constraintViolations.isEmpty()));
+                .fireEvent(new BinderStatusChangeEvent(this, hasConversionErrors, !constraintViolations.isEmpty()));
     }    
+    
+    public Optional<EasyBinding<BEAN, ?, ?>> getBinding(String propertyName) {
+    	Objects.requireNonNull(propertyName);
+    	return Optional.ofNullable(propertyToBindingMap.get(propertyName));
+    }
+    
+    public void setReadonly(boolean readOnly) {
+    	bindings.stream().forEach(e -> e.setReadOnly(readOnly));
+    }
+    
+    protected boolean fieldToBean(EasyBinding<BEAN, ?, ?> binding) {
+		Optional<String> currentError = binding.getError();
+		
+		boolean conversionOk = binding.fieldToBean(getBean());
+		if(conversionOk) {
+			Optional<String> currentValidationError = binding.getValidationError();
+			validate();
+			if(!currentValidationError.equals(binding.getValidationError())) {
+				// TODO: only fire if global change
+				fireStatusChangeEvent();							
+			}
+		}
+		
+		if(!currentError.equals(binding.getError())) {
+			handleError(binding.getField(), binding.getError());
+		}
+		fireStatusChangeEvent();		
+		
+		return conversionOk;		
+    }
+
+    public List<EasyBinding<BEAN, ?, ?>> getBindings() {
+    	return Collections.unmodifiableList(bindings);
+	}
     
 }

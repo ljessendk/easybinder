@@ -90,6 +90,19 @@
 			<version>${vaadin.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- Mockito -->
+	<dependency>
+		<groupId>org.mockito</groupId>
+		<artifactId>mockito-core</artifactId>
+		<version>2.10.0</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>info.solidsoft.mockito</groupId>
+		<artifactId>mockito-java8</artifactId>
+		<version>2.1.0</version>
+		<scope>test</scope>
+	</dependency>
 	</dependencies>
 	<repositories>
 		<repository>
