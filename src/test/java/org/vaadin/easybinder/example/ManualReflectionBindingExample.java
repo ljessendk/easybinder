@@ -3,7 +3,7 @@ package org.vaadin.easybinder.example;
 import java.util.EnumSet;
 
 import org.vaadin.addonhelpers.AbstractTest;
-import org.vaadin.easybinder.ReflectionBinder;
+import org.vaadin.easybinder.data.ReflectionBinder;
 import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId.LegType;
 

@@ -1,7 +1,7 @@
 package org.vaadin.easybinder.example;
 
 import org.vaadin.addonhelpers.AbstractTest;
-import org.vaadin.easybinder.AutoBinder;
+import org.vaadin.easybinder.data.AutoBinder;
 import org.vaadin.easybinder.testentity.Flight;
 
 import com.vaadin.ui.Component;

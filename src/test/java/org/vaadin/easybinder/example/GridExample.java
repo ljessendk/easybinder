@@ -3,11 +3,11 @@ package org.vaadin.easybinder.example;
 import java.util.Date;
 
 import org.vaadin.addonhelpers.AbstractTest;
-import org.vaadin.easybinder.AutoBinder;
-import org.vaadin.easybinder.EasyGrid;
+import org.vaadin.easybinder.data.AutoBinder;
 import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId;
 import org.vaadin.easybinder.testentity.FlightId.LegType;
+import org.vaadin.easybinder.ui.EGrid;
 
 import com.vaadin.ui.Component;
 
@@ -40,7 +40,7 @@ public class GridExample extends AbstractTest {
 
 		binder.buildAndBind("flightId");
 
-		EasyGrid<Flight> grid = new EasyGrid<>(binder);
+		EGrid<Flight> grid = new EGrid<>(binder);
 
 		grid.setItems(flight1, flight2);
 
