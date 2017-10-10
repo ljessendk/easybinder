@@ -8,12 +8,12 @@ import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId.LegType;
 
 import com.vaadin.data.HasValue;
+import com.vaadin.ui.AbstractSingleSelect;
 import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TextField;
-import com.vaadin.ui.RadioButtonGroup;
 
 public class BuildAndBindTest extends BaseTests {
 
@@ -28,7 +28,7 @@ public class BuildAndBindTest extends BaseTests {
 		form.flightNumber = (TextField) binder.getFieldForProperty("flightId.flightNumber").get();
 		form.flightSuffix = (TextField) binder.getFieldForProperty("flightId.flightSuffix").get();
 		form.date = (DateField) binder.getFieldForProperty("flightId.date").get();
-		form.legType = (RadioButtonGroup<LegType>) binder.getFieldForProperty("flightId.legType").get();
+		form.legType = (AbstractSingleSelect<LegType>) binder.getFieldForProperty("flightId.legType").get();
 		form.sbt = (DateTimeField) binder.getFieldForProperty("sbt").get();
 		form.ebt = (DateTimeField) binder.getFieldForProperty("ebt").get();
 		form.abt = (DateTimeField) binder.getFieldForProperty("abt").get();

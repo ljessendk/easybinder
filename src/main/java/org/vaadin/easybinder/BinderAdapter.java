@@ -126,6 +126,9 @@ public class BinderAdapter<BEAN> extends Binder<BEAN>{
 			Setter<BEAN, Object> setter = (Setter<BEAN, Object>)e.setter;
 			setter.accept(bean, e.getter.apply(sourceBean));
 		});
+		// Trigger StatusChange (required by Grid editor).
+		binder.removeBean();
+		binder.setBean(sourceBean);
 	}
 	
 	@Override

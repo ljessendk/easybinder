@@ -19,11 +19,12 @@ import org.vaadin.easybinder.testentity.FlightId.LegType;
 
 import com.vaadin.annotations.PropertyId;
 import com.vaadin.data.HasValue;
+import com.vaadin.ui.AbstractSingleSelect;
 import com.vaadin.ui.CheckBox;
+import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.RadioButtonGroup;
 import com.vaadin.ui.TextField;
 
 public abstract class BaseTests {
@@ -38,7 +39,7 @@ public abstract class BaseTests {
 		@PropertyId("flightId.date")
 		DateField date = new DateField("Date");
 		@PropertyId("flightId.legType")
-		RadioButtonGroup<LegType> legType = new RadioButtonGroup<>("Leg type", EnumSet.allOf(LegType.class));
+		AbstractSingleSelect<LegType> legType = new ComboBox<>("Leg type", EnumSet.allOf(LegType.class));
 		DateTimeField sbt = new DateTimeField("SBT");
 		DateTimeField ebt = new DateTimeField("EBT");
 		DateTimeField abt = new DateTimeField("ABT");

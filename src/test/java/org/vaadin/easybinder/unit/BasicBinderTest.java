@@ -17,10 +17,10 @@ import javax.validation.constraints.NotNull;
 
 import org.junit.Test;
 import org.vaadin.easybinder.BasicBinder;
-import org.vaadin.easybinder.BasicBinder.EasyBinding;
 import org.vaadin.easybinder.BinderStatusChangeListener;
 import org.vaadin.easybinder.NullConverter;
 import org.vaadin.easybinder.StringLengthConverterValidator;
+import org.vaadin.easybinder.BasicBinder.EasyBinding;
 
 import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.data.converter.StringToIntegerConverter;

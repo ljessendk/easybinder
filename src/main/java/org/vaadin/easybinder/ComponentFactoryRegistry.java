@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import org.vaadin.easybinder.ui.EComboBox;
+
 import com.googlecode.gentyref.GenericTypeReflector;
 import com.vaadin.shared.util.SharedUtil;
 import com.vaadin.ui.CheckBox;
@@ -47,7 +49,6 @@ import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
 import com.vaadin.ui.Grid;
 import com.vaadin.ui.ListSelect;
-import com.vaadin.ui.RadioButtonGroup;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.TwinColSelect;
 
@@ -96,9 +97,12 @@ public class ComponentFactoryRegistry {
 
 		
 		addBuildPattern(Enum.class, e -> true, e -> {
-			@SuppressWarnings({ "rawtypes", "unchecked" })		
-			Component c = new RadioButtonGroup(SharedUtil.camelCaseToHumanFriendly(e.getName()),
-					Arrays.asList(e.getType().getEnumConstants()));
+			Class<?> clazz = e.getGenericType() != null ? (Class<?>)e.getGenericType() : e.getType();
+			@SuppressWarnings({ "rawtypes", "unchecked" })
+			Component c = new EComboBox(clazz,
+					SharedUtil.camelCaseToHumanFriendly(e.getName()),
+					Arrays.asList(e.getType().getEnumConstants())
+					);
 			return c;
 		});
 		
@@ -160,6 +164,5 @@ public class ComponentFactoryRegistry {
 
 		log.log(Level.INFO, "No match for field=<{1}> with type=<{2}>, generating a text field", new Object[] { field, field.getType() });
 		return Optional.of(new TextField(SharedUtil.camelCaseToHumanFriendly(field.getName())));
-		//return Optional.empty();
 	}
 }

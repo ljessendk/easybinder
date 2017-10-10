@@ -1,8 +1,12 @@
 package org.vaadin.easybinder.unit;
 
+import static info.solidsoft.mockito.java8.AssertionMatcher.assertArg;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.util.Date;
 
@@ -13,6 +17,7 @@ import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId;
 import org.vaadin.easybinder.testentity.FlightId.LegType;
 
+import com.vaadin.data.StatusChangeListener;
 import com.vaadin.data.ValidationException;
 import com.vaadin.ui.TextField;
 
@@ -21,8 +26,8 @@ public class BinderAdapterTest {
 	@Test
 	public void testReadWriteBean() throws ValidationException {
 		AutoBinder<Flight> binder = new AutoBinder<>(Flight.class);
-		BinderAdapter<Flight> adapter = new BinderAdapter<>(binder, Flight.class); 
-		
+		BinderAdapter<Flight> adapter = new BinderAdapter<>(binder, Flight.class);
+
 		binder.buildAndBind("flightId");
 		
 		Flight f1 = new Flight();
@@ -38,8 +43,13 @@ public class BinderAdapterTest {
 		adapter.readBean(f1);
 		
 		assertTrue(binder.isValid());
-		
+
+		StatusChangeListener statusChangeListener = mock(StatusChangeListener.class);
+		adapter.addStatusChangeListener(statusChangeListener);
+
 		adapter.writeBean(f2);
+
+		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
 
 		assertTrue(f1 != f2);		
 		assertEquals(f1.getFlightId().getAirline(), f2.getFlightId().getAirline());
@@ -57,7 +67,6 @@ public class BinderAdapterTest {
 			assertEquals(0, ex.getBeanValidationErrors().size());
 			assertEquals(1, ex.getFieldValidationErrors().size());
 		}
-			
 	}
 	
 }

@@ -16,12 +16,6 @@ public class GridExample extends AbstractTest {
 
 	@Override
 	public Component getTestComponent() {
-		AutoBinder<Flight> binder = new AutoBinder<>(Flight.class);
-
-		binder.buildAndBind("flightId");
-
-		EasyGrid<Flight> grid = new EasyGrid<>(binder, Flight.class);
-		
 		Flight flight1 = new Flight();
 		FlightId id1 = new FlightId();
 		id1.setAirline("XX");
@@ -41,13 +35,18 @@ public class GridExample extends AbstractTest {
 		id2.setLegType(LegType.DEPARTURE);
 		flight2.setFlightId(id2);
 		flight2.setCanceled(false);
-				
+
+		AutoBinder<Flight> binder = new AutoBinder<>(Flight.class);
+
+		binder.buildAndBind("flightId");
+
+		EasyGrid<Flight> grid = new EasyGrid<>(binder);
+
 		grid.setItems(flight1, flight2);
-		
+
 		grid.setWidth("100%");
-		//Still needs some work...
-		//grid.getEditor().setEnabled(true);
-		
+		grid.getEditor().setEnabled(true);
+
 		return grid;
 	}
 

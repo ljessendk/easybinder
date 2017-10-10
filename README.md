@@ -13,6 +13,9 @@ New features compared with Vaadin 8 standard binder:
 - Support for automatic binding of nested beans (https://github.com/vaadin/framework/issues/9210)
 - Proper null-conversions (https://github.com/vaadin/framework/issues/8441, https://github.com/vaadin/framework/issues/9000 and https://github.com/vaadin/framework/issues/9453)
 - Binding with value-provider supports JSR 303 validation (https://github.com/vaadin/framework/issues/8815)
+- Properties are displayed in correct order in Grid's
+- Grid property displays uses same converter sets as forms
+- Automatic editor for Grid building
 - "Naked objects" inspired automatic form-builder.
 - Easily extendable, most internal classes, methods and fields are declared protected.
 
@@ -85,6 +88,20 @@ addComponents(
 MyEntity entity = new MyEntity();
 binder.setBean(entity);
 ```
+## Build a Grid
+```
+AutoBinder<MyEntity> binder = new AutoBinder<>(MyEntity.class);
+
+binder.buildAndBind();
+
+EGrid<Flight> grid = new EGrid<>(binder);
+
+grid.setItems(..., ...);
+
+grid.getEditor().setEnabled(true);
+
+```
+
 
 ## Register custom converter
 ```

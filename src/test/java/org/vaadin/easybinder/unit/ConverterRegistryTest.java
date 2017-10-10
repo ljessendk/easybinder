@@ -12,19 +12,24 @@ import com.vaadin.data.Result;
 
 public class ConverterRegistryTest {
 	@Test
-	public void testConverterRegistry() {
+	public void testSingleInstance() {
 		ConverterRegistry i1 = ConverterRegistry.getInstance();
 		ConverterRegistry i2 = ConverterRegistry.getInstance();
 		assertTrue(i1 == i2);
+	}
 
-		assertNull(i2.getConverter(String.class, String.class));
+	@Test
+	public void testRegisterUnregister() {
+		ConverterRegistry i = ConverterRegistry.getInstance();
+
+		assertNull(i.getConverter(String.class, String.class));
 		
-		i2.registerConverter(String.class, String.class, Converter.from(e -> Result.ok(e), f -> f));
+		i.registerConverter(String.class, String.class, Converter.from(e -> Result.ok(e), f -> f));
 		
-		assertNotNull(i2.getConverter(String.class, String.class));
+		assertNotNull(i.getConverter(String.class, String.class));
 		
-		i2.unregisterConverter(String.class, String.class);
+		i.unregisterConverter(String.class, String.class);
 		
-		assertNull(i2.getConverter(String.class, String.class));		
+		assertNull(i.getConverter(String.class, String.class));
 	}
 }

@@ -30,6 +30,8 @@ import java.util.logging.Logger;
 
 import javax.validation.constraints.Min;
 
+import org.vaadin.easybinder.data.HasGenericType;
+
 import com.googlecode.gentyref.GenericTypeReflector;
 import com.vaadin.data.BeanPropertySet;
 import com.vaadin.data.Converter;
@@ -41,7 +43,7 @@ import com.vaadin.data.ValueProvider;
 import com.vaadin.server.Setter;
 import com.vaadin.util.ReflectTools;
 
-public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
+public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGenericType<BEAN> {
 	protected Class<BEAN> clazz;
 
 	protected PropertySet<BEAN> propertySet;
@@ -101,19 +103,26 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 							new Object[] { fieldTypeClass.get(), modelTypeClass });
 				}
 			} else if (ReflectTools.convertPrimitiveType(fieldTypeClass.get()).equals(ReflectTools.convertPrimitiveType(modelTypeClass))) {
-				log.log(Level.INFO, "Converter for {0}->{1} found by assignment");
-				converter = createConverter(ReflectTools.convertPrimitiveType(fieldTypeClass.get()));
+				log.log(Level.INFO, "Converter for {0}->{1} found by assignment",
+						new Object[] { fieldTypeClass.get(), modelTypeClass });
+				converter = createConverter(definition.getType());
 			} else if (fieldTypeClass.get().equals(String.class)) {
-				log.log(Level.INFO, "Using toString() converter");
+				log.log(Level.INFO, "Unable to find converter between presentationType=<{0}> and modelType=<{1}>, using read-only toString() converter",
+						new Object[] { fieldTypeClass.get(), modelTypeClass });
 				converter = createStringConverter();
 				readOnly = true;
+			} else {
+				log.log(Level.WARNING, "Unable to find converter between presentationType=<{0}> and modelType=<{1}>. Please register a converter. Using default assignment converter",
+						new Object[] { fieldTypeClass.get(), modelTypeClass });
+				converter = createConverter(definition.getType());
 			}
 		} 
-				
+
 		if(converter == null) {
+			log.log(Level.WARNING, "Unable to determine presentation type of field due to type-erasure. Fields requiring generic type arguments should either implement HasGenericType, be wrapped by EGTypeComponentAdapter or be subclassed to ensure type can be recovered. Using default assignment converter for propertyType=<{0}>", new Object[] { modelTypeClass });
+
 			// Uses definition.getType() to ensure that the object type and not primitive type is returned.
 			converter = createConverter(definition.getType());
-			log.log(Level.WARNING, "Converter for {0} generated", new Object[] { modelTypeClass });
 		}
 
 		return bind(field, propertyName, converter, readOnly);
@@ -174,8 +183,18 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 	protected <PRESENTATION> Optional<Class<PRESENTATION>> getFieldTypeForField(HasValue<PRESENTATION> field) {
 		// Try to find the field type using reflection
 		Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
+		if(valueType != null) {
+			return Optional.of((Class<PRESENTATION>) valueType);
+		}
 
-		return Optional.ofNullable((Class<PRESENTATION>) valueType);
+		// Not possible to find using reflection (due to type erasure)
+		// If field is an instance of HasGenericType
+		if(field instanceof HasGenericType) {
+			HasGenericType<PRESENTATION> type = (HasGenericType<PRESENTATION>)field;
+			return Optional.of(type.getGenericType());
+		}
+
+		return Optional.empty();
 	}
 
 	protected Optional<Field> getDeclaredFieldByName(Class<?> searchClass, String name) {
@@ -217,6 +236,11 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> {
 	 */
 	public RequiredFieldConfigurator getRequiredConfigurator() {
 		return requiredConfigurator;
+	}
+
+	@Override
+	public Class<BEAN> getGenericType() {
+		return clazz;
 	}
 
 }

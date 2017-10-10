@@ -1,27 +1,37 @@
 package org.vaadin.easybinder;
 
+import org.vaadin.easybinder.data.HasGenericType;
+
 import com.vaadin.shared.util.SharedUtil;
 import com.vaadin.ui.Grid;
 
 @SuppressWarnings("serial")
-public class EasyGrid<BEAN> extends Grid<BEAN> {
+public class EasyGrid<T> extends Grid<T> implements HasGenericType<T> {
+
+	protected Class<T> genericType;
+
+	public EasyGrid(ReflectionBinder<T> binder) {
+		this(binder, binder.getGenericType());
+	}
+
+	public EasyGrid(BasicBinder<T> binder, Class<T> type) {
+		this.genericType = type;
 		
-	public EasyGrid(BasicBinder<BEAN> binder, Class<BEAN> clazz) {
-		getEditor().setBinder(new BinderAdapter<BEAN>(binder, clazz));
+		getEditor().setBinder(new BinderAdapter<T>(binder, type));
 				
-		binder.bindings.stream().forEach(e -> {
+		binder.getBindings().stream().forEach(e -> {
 			e.getProperty().ifPresent(f -> {
 				int beginIndex = f.lastIndexOf('.');
 				String propertyName = f.substring(beginIndex == -1 ? 0 : beginIndex+1);
-				Column<BEAN, ?> col = addColumn(e.getter).setCaption(SharedUtil.camelCaseToHumanFriendly(propertyName));
+				Column<T, ?> col = addColumn(e.getGetter()).setCaption(SharedUtil.camelCaseToHumanFriendly(propertyName));
 				col.setEditorBinding(e);
 			});
 			
-		});		
-		
-		//getEditor().setBuffered(false);
-		
-		//getEditor().setEnabled(true);
-		
+		});
+	}
+
+	@Override
+	public Class<T> getGenericType() {
+		return genericType;
 	}
 }

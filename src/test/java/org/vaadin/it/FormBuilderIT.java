@@ -5,7 +5,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.vaadin.addonhelpers.automated.AbstractWebDriverCase;
 import org.vaadin.addonhelpers.automated.VaadinConditions;
 import org.vaadin.easybinder.example.BuildAndBindExample;
-
 import org.openqa.selenium.firefox.FirefoxDriver;
 
 /**

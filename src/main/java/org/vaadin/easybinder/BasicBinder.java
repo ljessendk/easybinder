@@ -215,6 +215,10 @@ public class BasicBinder<BEAN> {
 				return validationError;
 			}
 		}
+
+		public ValueProvider<BEAN, TARGET> getGetter() {
+			return getter;
+		}
 		
 	}
 
