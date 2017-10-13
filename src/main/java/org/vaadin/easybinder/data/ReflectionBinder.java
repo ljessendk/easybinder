@@ -35,11 +35,14 @@ import org.vaadin.easybinder.data.converters.NullConverter;
 import com.googlecode.gentyref.GenericTypeReflector;
 import com.vaadin.data.BeanPropertySet;
 import com.vaadin.data.Converter;
+import com.vaadin.data.HasItems;
 import com.vaadin.data.HasValue;
 import com.vaadin.data.PropertyDefinition;
 import com.vaadin.data.PropertySet;
 import com.vaadin.data.RequiredFieldConfigurator;
 import com.vaadin.data.ValueProvider;
+import com.vaadin.data.provider.DataProvider;
+import com.vaadin.data.provider.Query;
 import com.vaadin.server.Setter;
 import com.vaadin.util.ReflectTools;
 
@@ -50,7 +53,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 	protected Map<String, EasyBinding<BEAN, ?, ?>> boundProperties = new HashMap<String, EasyBinding<BEAN, ?, ?>>();
 
-	protected static ConverterRegistry globalConverterRegistry = ConverterRegistry.getInstance();
+	protected ConverterRegistry converterRegistry = ConverterRegistry.getInstance();
 
 	private static RequiredFieldConfigurator MIN = annotation -> annotation.annotationType().equals(Min.class)
 			&& ((Min) annotation).value() > 0;
@@ -62,6 +65,11 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 	public ReflectionBinder(Class<BEAN> clazz) {
 		this.clazz = clazz;
 		propertySet = BeanPropertySet.get(clazz);
+	}
+	
+	public ReflectionBinder(Class<BEAN> clazz, ConverterRegistry converterRegistry) {
+		this(clazz);
+		this.converterRegistry = converterRegistry;		
 	}
 
 	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
@@ -88,7 +96,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 		Converter<PRESENTATION, ?> converter = null;
 		if (fieldTypeClass.isPresent()) {
-			converter = globalConverterRegistry.getConverter(fieldTypeClass.get(), modelTypeClass);
+			converter = converterRegistry.getConverter(fieldTypeClass.get(), modelTypeClass);
 			if (converter != null) {
 				log.log(Level.INFO, "Converter for {0}->{1} found by lookup",
 						new Object[] { fieldTypeClass.get(), modelTypeClass });
@@ -173,27 +181,56 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createStringConverter() {
-		return (Converter) Converter.from(null, fieldValue -> fieldValue.toString(), exception -> {
+		return (Converter) Converter.from(null, fieldValue -> fieldValue == null ? "": fieldValue.toString(), exception -> {
 					throw new RuntimeException(exception);
 				});
 	}	
 	
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected <PRESENTATION> Optional<Class<PRESENTATION>> getFieldTypeForField(HasValue<PRESENTATION> field) {
-		// Try to find the field type using reflection
+		// Unfortunately HasValue in Vaadin does not define a getType() method.
+		
+		// Try to find the field type using reflection. This will work for any fields except fields with generic types.
 		Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
 		if(valueType != null) {
 			return Optional.of((Class<PRESENTATION>) valueType);
 		}
 
-		// Not possible to find using reflection (due to type erasure)
+		// Not possible to find using reflection (due to type erasure).
 		// If field is an instance of HasGenericType
 		if(field instanceof HasGenericType) {
 			HasGenericType<PRESENTATION> type = (HasGenericType<PRESENTATION>)field;
 			return Optional.of(type.getGenericType());
 		}
-
+		
+		// The road to success is paved with dirty hacks....
+		
+		// If the field has a non null empty value we can fetch the type from this
+		PRESENTATION emptyValue = field.getEmptyValue();
+		if(emptyValue != null) {
+			return Optional.of((Class<PRESENTATION>)emptyValue.getClass());
+		}
+		
+		// If the field has a current value we can fetch the type from this
+		PRESENTATION currentValue = field.getValue();
+		if(currentValue != null) {
+			return Optional.of((Class<PRESENTATION>)currentValue.getClass());			
+		}
+		
+		// If the field has items we can fetch the type from the first item
+		if(field instanceof HasItems) {
+			HasItems<PRESENTATION> hasItems = (HasItems<PRESENTATION>)field;
+			DataProvider<?, ?> dp = hasItems.getDataProvider();
+			if(dp != null) {
+				Query<?, ?> q = new Query<>(0, 1, null, null, null);
+				if(dp.size((Query)q) > 0) {
+					return hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass());					
+				}
+				
+			}
+		}
+				
 		return Optional.empty();
 	}
 

@@ -7,11 +7,15 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Optional;
 
 import org.junit.Test;
 import org.vaadin.easybinder.data.AutoBinder;
+import org.vaadin.easybinder.data.BasicBinder.EasyBinding;
 import org.vaadin.easybinder.data.BinderAdapter;
 import org.vaadin.easybinder.testentity.Flight;
 import org.vaadin.easybinder.testentity.FlightId;
@@ -19,9 +23,19 @@ import org.vaadin.easybinder.testentity.FlightId.LegType;
 
 import com.vaadin.data.StatusChangeListener;
 import com.vaadin.data.ValidationException;
+import com.vaadin.data.converter.StringToIntegerConverter;
 import com.vaadin.ui.TextField;
 
 public class BinderAdapterTest {
+	
+	static class TestEntity {
+		int test = 0;
+		
+		int getTest() {
+			return test;
+		}		
+	}
+	
 	
 	@Test
 	public void testReadWriteBean() throws ValidationException {
@@ -68,5 +82,32 @@ public class BinderAdapterTest {
 			assertEquals(1, ex.getFieldValidationErrors().size());
 		}
 	}
+			
+	@Test
+	public void testReadWriteBeanEmptySetter() throws ValidationException {
+		@SuppressWarnings("unchecked")
+		BasicBinder<TestEntity> binder = (BasicBinder<TestEntity>)mock(BasicBinder.class);
+		BinderAdapter<TestEntity> binderAdapter = new BinderAdapter<TestEntity>(binder, TestEntity.class);
+	
+		when(binder.getBean()).thenReturn(new TestEntity());
+		when(binder.isValid()).thenReturn(true);
+				
+		EasyBinding<TestEntity, String, Integer> binding = new EasyBinding<>(
+				binder, 
+				new TextField(), 
+				TestEntity::getTest, 
+				null, 
+				Optional.of("test"), 
+				new StringToIntegerConverter(""));
+		
+		when(binder.getBindings()).thenReturn(Arrays.asList(binding));
+				
+		TestEntity testEntity = new TestEntity();
+
+		// Just verify that no null pointer exception is thrown
+		binderAdapter.readBean(testEntity);
+		binderAdapter.writeBean(testEntity);
+	}
+	
 	
 }

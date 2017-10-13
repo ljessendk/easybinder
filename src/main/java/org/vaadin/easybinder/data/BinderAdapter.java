@@ -43,6 +43,10 @@ public class BinderAdapter<BEAN> extends Binder<BEAN>{
 		});
 	}
 	
+	public BinderAdapter(ReflectionBinder<BEAN> binder) {
+		this(binder, binder.getGenericType());
+	}
+	
 	@Override
     public BEAN getBean() {
 		return binder.getBean();
@@ -102,7 +106,9 @@ public class BinderAdapter<BEAN> extends Binder<BEAN>{
 		binder.getBindings().stream().forEach(e -> {
 			@SuppressWarnings("unchecked")
 			Setter<BEAN, Object> setter = (Setter<BEAN, Object>)e.setter;
-			setter.accept(targetBean, e.getter.apply(bean));
+			if(setter != null) {
+				setter.accept(targetBean, e.getter.apply(bean));
+			}
 		});
 		binder.setBean(targetBean);
     }
@@ -124,7 +130,9 @@ public class BinderAdapter<BEAN> extends Binder<BEAN>{
 		binder.getBindings().stream().forEach(e -> {
 			@SuppressWarnings("unchecked")
 			Setter<BEAN, Object> setter = (Setter<BEAN, Object>)e.setter;
-			setter.accept(bean, e.getter.apply(sourceBean));
+			if(setter != null) {
+				setter.accept(bean, e.getter.apply(sourceBean));
+			}
 		});
 		// Trigger StatusChange (required by Grid editor).
 		binder.removeBean();
