@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 import javax.validation.constraints.Min;
 
 import org.vaadin.easybinder.data.converters.NullConverter;
+import org.vaadin.easybinder.data.converters.NullConverterPrimitiveTarget;
 
 import com.googlecode.gentyref.GenericTypeReflector;
 import com.vaadin.data.BeanPropertySet;
@@ -84,7 +85,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 				.orElseThrow(() -> new IllegalArgumentException(
 						"Could not resolve property name " + propertyName + " from " + propertySet));
 
-		Optional<Class<PRESENTATION>> fieldTypeClass = getFieldTypeForField(field);
+		Optional<Class<PRESENTATION>> presentationTypeClass = getPresentationTypeForField(field);
 
 		Class<?> modelTypeClass = definition.getType();
 
@@ -95,42 +96,24 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		}
 
 		Converter<PRESENTATION, ?> converter = null;
-		if (fieldTypeClass.isPresent()) {
-			converter = converterRegistry.getConverter(fieldTypeClass.get(), modelTypeClass);
-			if (converter != null) {
-				log.log(Level.INFO, "Converter for {0}->{1} found by lookup",
-						new Object[] { fieldTypeClass.get(), modelTypeClass });
-			} else if (fieldTypeClass.get().equals(modelTypeClass)) {
-				if (modelTypeClass.isPrimitive()) {
-					converter = Converter.identity();
-					log.log(Level.INFO, "Converter for primitive {0}->{1} found by identity",
-							new Object[] { fieldTypeClass.get(), modelTypeClass });
+		if (presentationTypeClass.isPresent()) {
+			converter = createConverter(presentationTypeClass.get(), modelTypeClass, field.getEmptyValue());
+			if(converter == null) {
+				if (presentationTypeClass.get().equals(String.class)) {
+					log.log(Level.INFO, "Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>, using read-only toString() converter",
+						new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
+					converter = createToStringConverter();
+					readOnly = true;
 				} else {
-					converter = new NullConverter<PRESENTATION>(field.getEmptyValue());
-					log.log(Level.INFO, "Converter for non-primitive {0}->{1} found by identity",
-							new Object[] { fieldTypeClass.get(), modelTypeClass });
+					log.log(Level.WARNING, "Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>. Please register a converter. Using default assignment converter",
+						new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
+					converter = createCastConverter(modelTypeClass);					
 				}
-			} else if (ReflectTools.convertPrimitiveType(fieldTypeClass.get()).equals(ReflectTools.convertPrimitiveType(modelTypeClass))) {
-				log.log(Level.INFO, "Converter for {0}->{1} found by assignment",
-						new Object[] { fieldTypeClass.get(), modelTypeClass });
-				converter = createConverter(definition.getType());
-			} else if (fieldTypeClass.get().equals(String.class)) {
-				log.log(Level.INFO, "Unable to find converter between presentationType=<{0}> and modelType=<{1}>, using read-only toString() converter",
-						new Object[] { fieldTypeClass.get(), modelTypeClass });
-				converter = createStringConverter();
-				readOnly = true;
-			} else {
-				log.log(Level.WARNING, "Unable to find converter between presentationType=<{0}> and modelType=<{1}>. Please register a converter. Using default assignment converter",
-						new Object[] { fieldTypeClass.get(), modelTypeClass });
-				converter = createConverter(definition.getType());
 			}
-		} 
+		} else {
+			log.log(Level.WARNING, "Unable to determine presentation type of field due to type-erasure. Fields requiring generic type arguments should either implement HasGenericType, be wrapped by EGTypeComponentAdapter or be subclassed to ensure type can be recovered. Using default assignment converter for modelType=<{0}>, property=<{1}>", new Object[] { modelTypeClass, propertyName });
 
-		if(converter == null) {
-			log.log(Level.WARNING, "Unable to determine presentation type of field due to type-erasure. Fields requiring generic type arguments should either implement HasGenericType, be wrapped by EGTypeComponentAdapter or be subclassed to ensure type can be recovered. Using default assignment converter for propertyType=<{0}>", new Object[] { modelTypeClass });
-
-			// Uses definition.getType() to ensure that the object type and not primitive type is returned.
-			converter = createConverter(definition.getType());
+			converter = createCastConverter(modelTypeClass);
 		}
 
 		return bind(field, propertyName, converter, readOnly);
@@ -171,16 +154,43 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		return binding;
 	}
 
+	
+	
+	
+	@SuppressWarnings("unchecked")
+	protected <PRESENTATION,MODEL> Converter<PRESENTATION, MODEL> createConverter(Class<PRESENTATION> presentationType, Class<MODEL> modelType, PRESENTATION emptyValue) {
+		Objects.requireNonNull(presentationType);
+		Objects.requireNonNull(modelType);
+		
+		Converter<PRESENTATION,MODEL> converter = converterRegistry.getConverter(presentationType, modelType);
+		if (converter != null) {
+			log.log(Level.INFO, "Converter for {0}->{1} found by lookup",
+					new Object[] { presentationType, modelType });
+		} else if (ReflectTools.convertPrimitiveType(presentationType).equals(ReflectTools.convertPrimitiveType(modelType))) {
+			if (modelType.isPrimitive()) {
+				converter = (Converter<PRESENTATION,MODEL>)new NullConverterPrimitiveTarget<PRESENTATION>(emptyValue);
+				log.log(Level.INFO, "Converter for primitive {0}->{1} found by identity",
+						new Object[] { presentationType, modelType });
+			} else {
+				converter = (Converter<PRESENTATION,MODEL>)new NullConverter<PRESENTATION>(emptyValue);
+				log.log(Level.INFO, "Converter for non-primitive {0}->{1} found by identity",
+						new Object[] { presentationType, modelType });
+			}
+		} 
+		return converter;
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createConverter(Class<MODEL> propertyType) {
-		return (Converter) Converter.from(fieldValue -> propertyType.cast(fieldValue),
+	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createCastConverter(Class<MODEL> propertyType) {
+		Class<?> propertyTypeNonPrimitive = ReflectTools.convertPrimitiveType(propertyType);
+		return (Converter) Converter.from(fieldValue -> propertyTypeNonPrimitive.cast(fieldValue),
 				propertyValue -> (MODEL) propertyValue, exception -> {
 					throw new RuntimeException(exception);
 				});
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createStringConverter() {
+	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createToStringConverter() {
 		return (Converter) Converter.from(null, fieldValue -> fieldValue == null ? "": fieldValue.toString(), exception -> {
 					throw new RuntimeException(exception);
 				});
@@ -188,7 +198,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 	
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	protected <PRESENTATION> Optional<Class<PRESENTATION>> getFieldTypeForField(HasValue<PRESENTATION> field) {
+	protected <PRESENTATION> Optional<Class<PRESENTATION>> getPresentationTypeForField(HasValue<PRESENTATION> field) {
 		// Unfortunately HasValue in Vaadin does not define a getType() method.
 		
 		// Try to find the field type using reflection. This will work for any fields except fields with generic types.

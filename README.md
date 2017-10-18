@@ -9,11 +9,11 @@ New features compared with Vaadin 8 standard binder:
 - JSR 303 bean level validation support (https://github.com/vaadin/framework/issues/8498).
 - JSR 303 validation groups support (https://github.com/vaadin/framework/issues/8385).
 - JSR 303 @Valid support (https://github.com/vaadin/framework/issues/9520)
-- unbind() method.
+- unbind() method (https://github.com/vaadin/framework/pull/9932).
 - Support for automatic binding of nested beans (https://github.com/vaadin/framework/issues/9210)
 - Proper null-conversions (https://github.com/vaadin/framework/issues/8441, https://github.com/vaadin/framework/issues/9000 and https://github.com/vaadin/framework/issues/9453)
 - Binding with value-provider supports JSR 303 validation (https://github.com/vaadin/framework/issues/8815)
-- Properties are displayed in correct order in Grid's
+- Bean properties are displayed in declared order in Grid's (https://github.com/vaadin/framework/issues/8980)
 - Grid property displays uses same converter sets as forms
 - Automatic editor for Grid building
 - "Naked objects" inspired automatic form-builder.
