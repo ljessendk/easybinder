@@ -553,4 +553,8 @@ public class BasicBinder<BEAN> {
 		return Collections.unmodifiableList(bindings);
 	}
 
+	public Set<ConstraintViolation<BEAN>> getConstraintViolations() {
+		return constraintViolations;
+	}
+
 }

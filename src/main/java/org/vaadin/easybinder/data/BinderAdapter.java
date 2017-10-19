@@ -169,8 +169,8 @@ public class BinderAdapter<BEAN> extends Binder<BEAN> {
 	@Override
 	public BinderValidationStatus<BEAN> validate() {
 		return new BinderValidationStatus<BEAN>(this,
-				binder.bindings.stream().map(e -> e.validate()).collect(Collectors.toList()),
-				binder.constraintViolations.stream().filter(e -> e.getPropertyPath().toString().equals(""))
+				binder.getBindings().stream().map(e -> e.validate()).collect(Collectors.toList()),
+				binder.getConstraintViolations().stream().filter(e -> e.getPropertyPath().toString().equals(""))
 						.map(e -> ValidationResult.error(e.getMessage())).collect(Collectors.toList()));
 	}
 
@@ -196,7 +196,6 @@ public class BinderAdapter<BEAN> extends Binder<BEAN> {
 
 	@Override
 	public void setValidationStatusHandler(BinderValidationStatusHandler<BEAN> statusHandler) {
-
 		this.statusHandler = statusHandler;
 	}
 
