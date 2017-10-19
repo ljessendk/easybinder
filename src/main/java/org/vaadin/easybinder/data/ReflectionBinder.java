@@ -1,6 +1,6 @@
 /*
  * Copyright 2017 Lars Sønderby Jessen
- * 
+ *
  * Partly based on code copied from Vaadin Framework (Binder)
  * Copyright 2000-2016 Vaadin Ltd.
  *
@@ -56,28 +56,28 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 	protected ConverterRegistry converterRegistry = ConverterRegistry.getInstance();
 
-	private static RequiredFieldConfigurator MIN = annotation -> annotation.annotationType().equals(Min.class)
+	private static RequiredFieldConfigurator min = annotation -> annotation.annotationType().equals(Min.class)
 			&& ((Min) annotation).value() > 0;
 
 	protected Logger log = Logger.getLogger(getClass().getName());
 
-	protected RequiredFieldConfigurator requiredConfigurator = MIN.chain(RequiredFieldConfigurator.DEFAULT);
+	protected RequiredFieldConfigurator requiredConfigurator = min.chain(RequiredFieldConfigurator.DEFAULT);
 
 	public ReflectionBinder(Class<BEAN> clazz) {
 		this.clazz = clazz;
 		propertySet = BeanPropertySet.get(clazz);
 	}
-	
+
 	public ReflectionBinder(Class<BEAN> clazz, ConverterRegistry converterRegistry) {
 		this(clazz);
-		this.converterRegistry = converterRegistry;		
+		this.converterRegistry = converterRegistry;
 	}
 
 	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
 			String propertyName) {
 
 		boolean readOnly = false;
-		
+
 		Objects.requireNonNull(propertyName, "Property name cannot be null");
 		// checkUnbound();
 
@@ -98,20 +98,24 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		Converter<PRESENTATION, ?> converter = null;
 		if (presentationTypeClass.isPresent()) {
 			converter = createConverter(presentationTypeClass.get(), modelTypeClass, field.getEmptyValue());
-			if(converter == null) {
+			if (converter == null) {
 				if (presentationTypeClass.get().equals(String.class)) {
-					log.log(Level.INFO, "Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>, using read-only toString() converter",
-						new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
+					log.log(Level.INFO,
+							"Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>, using read-only toString() converter",
+							new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
 					converter = createToStringConverter();
 					readOnly = true;
 				} else {
-					log.log(Level.WARNING, "Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>. Please register a converter. Using default assignment converter",
-						new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
-					converter = createCastConverter(modelTypeClass);					
+					log.log(Level.WARNING,
+							"Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>. Please register a converter. Using default assignment converter",
+							new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
+					converter = createCastConverter(modelTypeClass);
 				}
 			}
 		} else {
-			log.log(Level.WARNING, "Unable to determine presentation type of field due to type-erasure. Fields requiring generic type arguments should either implement HasGenericType, be wrapped by EGTypeComponentAdapter or be subclassed to ensure type can be recovered. Using default assignment converter for modelType=<{0}>, property=<{1}>", new Object[] { modelTypeClass, propertyName });
+			log.log(Level.WARNING,
+					"Unable to determine presentation type of field due to type-erasure. Fields requiring generic type arguments should either implement HasGenericType, be wrapped by EGTypeComponentAdapter or be subclassed to ensure type can be recovered. Using default assignment converter for modelType=<{0}>, property=<{1}>",
+					new Object[] { modelTypeClass, propertyName });
 
 			converter = createCastConverter(modelTypeClass);
 		}
@@ -123,15 +127,14 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 			String propertyName, Converter<PRESENTATION, ?> converter) {
 		return bind(field, propertyName, converter, false);
 	}
-	
-	
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public <PRESENTATION, MODEL> EasyBinding<BEAN, PRESENTATION, MODEL> bind(HasValue<PRESENTATION> field,
 			String propertyName, Converter<PRESENTATION, ?> converter, boolean readOnly) {
 		Objects.requireNonNull(converter);
 		Objects.requireNonNull(propertyName, "Property name cannot be null");
 		// checkUnbound();
-		
+
 		PropertyDefinition<BEAN, ?> definition = propertySet.getProperty(propertyName)
 				.orElseThrow(() -> new IllegalArgumentException(
 						"Could not resolve property name " + propertyName + " from " + propertySet));
@@ -154,32 +157,30 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		return binding;
 	}
 
-	
-	
-	
 	@SuppressWarnings("unchecked")
-	protected <PRESENTATION,MODEL> Converter<PRESENTATION, MODEL> createConverter(Class<PRESENTATION> presentationType, Class<MODEL> modelType, PRESENTATION emptyValue) {
+	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createConverter(Class<PRESENTATION> presentationType,
+			Class<MODEL> modelType, PRESENTATION emptyValue) {
 		Objects.requireNonNull(presentationType);
 		Objects.requireNonNull(modelType);
-		
-		Converter<PRESENTATION,MODEL> converter = converterRegistry.getConverter(presentationType, modelType);
+
+		Converter<PRESENTATION, MODEL> converter = converterRegistry.getConverter(presentationType, modelType);
 		if (converter != null) {
-			log.log(Level.INFO, "Converter for {0}->{1} found by lookup",
-					new Object[] { presentationType, modelType });
-		} else if (ReflectTools.convertPrimitiveType(presentationType).equals(ReflectTools.convertPrimitiveType(modelType))) {
+			log.log(Level.INFO, "Converter for {0}->{1} found by lookup", new Object[] { presentationType, modelType });
+		} else if (ReflectTools.convertPrimitiveType(presentationType)
+				.equals(ReflectTools.convertPrimitiveType(modelType))) {
 			if (modelType.isPrimitive()) {
-				converter = (Converter<PRESENTATION,MODEL>)new NullConverterPrimitiveTarget<PRESENTATION>(emptyValue);
+				converter = (Converter<PRESENTATION, MODEL>) new NullConverterPrimitiveTarget<PRESENTATION>(emptyValue);
 				log.log(Level.INFO, "Converter for primitive {0}->{1} found by identity",
 						new Object[] { presentationType, modelType });
 			} else {
-				converter = (Converter<PRESENTATION,MODEL>)new NullConverter<PRESENTATION>(emptyValue);
+				converter = (Converter<PRESENTATION, MODEL>) new NullConverter<PRESENTATION>(emptyValue);
 				log.log(Level.INFO, "Converter for non-primitive {0}->{1} found by identity",
 						new Object[] { presentationType, modelType });
 			}
-		} 
+		}
 		return converter;
 	}
-	
+
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createCastConverter(Class<MODEL> propertyType) {
 		Class<?> propertyTypeNonPrimitive = ReflectTools.convertPrimitiveType(propertyType);
@@ -191,56 +192,57 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createToStringConverter() {
-		return (Converter) Converter.from(null, fieldValue -> fieldValue == null ? "": fieldValue.toString(), exception -> {
+		return (Converter) Converter.from(null, fieldValue -> fieldValue == null ? "" : fieldValue.toString(),
+				exception -> {
 					throw new RuntimeException(exception);
 				});
-	}	
-	
-	
+	}
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected <PRESENTATION> Optional<Class<PRESENTATION>> getPresentationTypeForField(HasValue<PRESENTATION> field) {
 		// Unfortunately HasValue in Vaadin does not define a getType() method.
-		
-		// Try to find the field type using reflection. This will work for any fields except fields with generic types.
+
+		// Try to find the field type using reflection. This will work for any fields
+		// except fields with generic types.
 		Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
-		if(valueType != null) {
+		if (valueType != null) {
 			return Optional.of((Class<PRESENTATION>) valueType);
 		}
 
 		// Not possible to find using reflection (due to type erasure).
 		// If field is an instance of HasGenericType
-		if(field instanceof HasGenericType) {
-			HasGenericType<PRESENTATION> type = (HasGenericType<PRESENTATION>)field;
+		if (field instanceof HasGenericType) {
+			HasGenericType<PRESENTATION> type = (HasGenericType<PRESENTATION>) field;
 			return Optional.of(type.getGenericType());
 		}
-		
+
 		// The road to success is paved with dirty hacks....
-		
+
 		// If the field has a non null empty value we can fetch the type from this
 		PRESENTATION emptyValue = field.getEmptyValue();
-		if(emptyValue != null) {
-			return Optional.of((Class<PRESENTATION>)emptyValue.getClass());
+		if (emptyValue != null) {
+			return Optional.of((Class<PRESENTATION>) emptyValue.getClass());
 		}
-		
+
 		// If the field has a current value we can fetch the type from this
 		PRESENTATION currentValue = field.getValue();
-		if(currentValue != null) {
-			return Optional.of((Class<PRESENTATION>)currentValue.getClass());			
+		if (currentValue != null) {
+			return Optional.of((Class<PRESENTATION>) currentValue.getClass());
 		}
-		
+
 		// If the field has items we can fetch the type from the first item
-		if(field instanceof HasItems) {
-			HasItems<PRESENTATION> hasItems = (HasItems<PRESENTATION>)field;
+		if (field instanceof HasItems) {
+			HasItems<PRESENTATION> hasItems = (HasItems<PRESENTATION>) field;
 			DataProvider<?, ?> dp = hasItems.getDataProvider();
-			if(dp != null) {
+			if (dp != null) {
 				Query<?, ?> q = new Query<>(0, 1, null, null, null);
-				if(dp.size((Query)q) > 0) {
-					return hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass());					
+				if (dp.size((Query) q) > 0) {
+					return hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass());
 				}
-				
+
 			}
 		}
-				
+
 		return Optional.empty();
 	}
 

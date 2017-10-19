@@ -19,17 +19,17 @@ public class EGrid<T> extends Grid<T> implements HasGenericType<T> {
 
 	public EGrid(BasicBinder<T> binder, Class<T> type) {
 		this.genericType = type;
-		
+
 		getEditor().setBinder(new BinderAdapter<T>(binder, type));
-				
+
 		binder.getBindings().stream().forEach(e -> {
 			e.getProperty().ifPresent(f -> {
 				int beginIndex = f.lastIndexOf('.');
-				String propertyName = f.substring(beginIndex == -1 ? 0 : beginIndex+1);
+				String propertyName = f.substring(beginIndex == -1 ? 0 : beginIndex + 1);
 				Column<T, ?> col = addColumn(e.getGetter()).setCaption(SharedUtil.camelCaseToHumanFriendly(propertyName));
 				col.setEditorBinding(e);
 			});
-			
+
 		});
 	}
 

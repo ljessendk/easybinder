@@ -19,7 +19,7 @@ public class EGTypeComponentAdapter<T> extends CustomField<T> implements HasGene
 	public EGTypeComponentAdapter(Class<T> genericType, Component adaptee) {
 		this.genericType = genericType;
 		this.component = adaptee;
-		hasValue = (HasValue<T>)adaptee;
+		hasValue = (HasValue<T>) adaptee;
 		hasValue.addValueChangeListener(e -> setValue(e.getValue()));
 	}
 

@@ -58,7 +58,7 @@ public class ComponentFactoryRegistry {
 	protected Logger log = Logger.getLogger(getClass().getName());
 
 	protected Map<Class<?>, List<Pair<Predicate<Field>, Function<Field, Component>>>> builders = new HashMap<>();
-	
+
 	protected ComponentFactoryRegistry() {
 		addBuildPattern(String.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 		addBuildPattern(Integer.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
@@ -69,13 +69,14 @@ public class ComponentFactoryRegistry {
 		addBuildPattern(float.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 		addBuildPattern(Double.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 		addBuildPattern(double.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(BigInteger.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(BigDecimal.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));		
+		addBuildPattern(BigInteger.class, e -> true,
+				e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(BigDecimal.class, e -> true,
+				e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 		addBuildPattern(Character.class, e -> true,
 				e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(char.class, e -> true,
-				e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		
+		addBuildPattern(char.class, e -> true, e -> new TextField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+
 		addBuildPattern(Date.class,
 				e -> Arrays.asList(e.getAnnotations()).stream().filter(f -> f instanceof Temporal)
 						.map(f -> (Temporal) f).filter(f -> f.value() == TemporalType.TIMESTAMP).findAny().isPresent(),
@@ -84,43 +85,41 @@ public class ComponentFactoryRegistry {
 				e -> !Arrays.asList(e.getAnnotations()).stream().filter(f -> f instanceof Temporal)
 						.map(f -> (Temporal) f).filter(f -> f.value() == TemporalType.TIMESTAMP).findAny().isPresent(),
 				e -> new DateField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(LocalDate.class, e -> true, e -> new DateField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(LocalDateTime.class, e -> true, e -> new DateTimeField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(Boolean.class, 
-				e -> true,
-				e -> new CheckBox(SharedUtil.camelCaseToHumanFriendly(e.getName()))
-				);
-		addBuildPattern(boolean.class, 
-				e -> true,
-				e -> new CheckBox(SharedUtil.camelCaseToHumanFriendly(e.getName()))
-				);
+		addBuildPattern(LocalDate.class, e -> true,
+				e -> new DateField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(LocalDateTime.class, e -> true,
+				e -> new DateTimeField(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(Boolean.class, e -> true, e -> new CheckBox(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(boolean.class, e -> true, e -> new CheckBox(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 
-		
 		addBuildPattern(Enum.class, e -> true, e -> {
-			Class<?> clazz = e.getGenericType() != null ? (Class<?>)e.getGenericType() : e.getType();
+			Class<?> clazz = e.getGenericType() != null ? (Class<?>) e.getGenericType() : e.getType();
 			@SuppressWarnings({ "rawtypes", "unchecked" })
-			Component c = new EComboBox(clazz,
-					SharedUtil.camelCaseToHumanFriendly(e.getName()),
-					Arrays.asList(e.getType().getEnumConstants())
-					);
+			Component c = new EComboBox(clazz, SharedUtil.camelCaseToHumanFriendly(e.getName()),
+					Arrays.asList(e.getType().getEnumConstants()));
 			return c;
 		});
-		
+
 		addBuildPattern(EnumSet.class, e -> true, e -> {
 			@SuppressWarnings({ "rawtypes", "unchecked" })
-			Class<Enum> valueType = (Class<Enum>)GenericTypeReflector.getTypeParameter(e.getGenericType(), EnumSet.class.getTypeParameters()[0]);
-			@SuppressWarnings({ "rawtypes", "unchecked" })			
+			Class<Enum> valueType = (Class<Enum>) GenericTypeReflector.getTypeParameter(e.getGenericType(),
+					EnumSet.class.getTypeParameters()[0]);
+			@SuppressWarnings({ "rawtypes", "unchecked" })
 			Collection<Enum> c = EnumSet.allOf(valueType);
-			@SuppressWarnings({ "rawtypes" })						
+			@SuppressWarnings({ "rawtypes" })
 			TwinColSelect<Enum> t = new TwinColSelect<Enum>(SharedUtil.camelCaseToHumanFriendly(e.getName()), c);
 			return t;
-		});		
-		addBuildPattern(Set.class, e -> true, e -> new TwinColSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(Collection.class, e -> true, e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));		
-		addBuildPattern(ArrayList.class, e -> true, e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(List.class, e -> true, e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		});
+		addBuildPattern(Set.class, e -> true,
+				e -> new TwinColSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(Collection.class, e -> true,
+				e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(ArrayList.class, e -> true,
+				e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+		addBuildPattern(List.class, e -> true,
+				e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
 		addBuildPattern(Map.class, e -> true, e -> {
-			Grid<Map.Entry<?,?>> g = new Grid<>(SharedUtil.camelCaseToHumanFriendly(e.getName()));
+			Grid<Map.Entry<?, ?>> g = new Grid<>(SharedUtil.camelCaseToHumanFriendly(e.getName()));
 			g.addColumn(f -> f.getKey());
 			g.addColumn(f -> f.getValue());
 			return g;
@@ -147,22 +146,24 @@ public class ComponentFactoryRegistry {
 
 	public Optional<Component> createComponent(Field field) {
 		Class<?> classToTest = field.getType();
-		while(classToTest != null) {
+		while (classToTest != null) {
 			List<Pair<Predicate<Field>, Function<Field, Component>>> candidates = builders.get(classToTest);
-			if(candidates != null) {
-				Optional<Pair<Predicate<Field>, Function<Field, Component>>> match = candidates.stream().filter(e -> e.getFirst().test(field)).findFirst();
-				if(match.isPresent()) {
-					log.log(Level.INFO, "Fould build rule for field=<{0}> using type={1}", new Object[] { field, classToTest} );
+			if (candidates != null) {
+				Optional<Pair<Predicate<Field>, Function<Field, Component>>> match = candidates.stream()
+						.filter(e -> e.getFirst().test(field)).findFirst();
+				if (match.isPresent()) {
+					log.log(Level.INFO, "Fould build rule for field=<{0}> using type={1}",
+							new Object[] { field, classToTest });
 					return Optional.of(match.get().getSecond().apply(field));
 				}
 			}
-			
-			log.log(Level.INFO, "No build rule for field=<{0}> with type=<{1}>",
-					new Object[] { field, classToTest });			
+
+			log.log(Level.INFO, "No build rule for field=<{0}> with type=<{1}>", new Object[] { field, classToTest });
 			classToTest = classToTest.getSuperclass();
 		}
 
-		log.log(Level.INFO, "No match for field=<{1}> with type=<{2}>, generating a text field", new Object[] { field, field.getType() });
+		log.log(Level.INFO, "No match for field=<{1}> with type=<{2}>, generating a text field",
+				new Object[] { field, field.getType() });
 		return Optional.of(new TextField(SharedUtil.camelCaseToHumanFriendly(field.getName())));
 	}
 }

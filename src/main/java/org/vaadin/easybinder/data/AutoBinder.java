@@ -1,6 +1,6 @@
 /*
  * Copyright 2017 Lars Sønderby Jessen
- * 
+ *
  * Partly based on code copied from Vaadin Framework:
  * Copyright 2000-2016 Vaadin Ltd.
  *
@@ -124,7 +124,7 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 					String.format("Unable to detect value type for the member '%s' in the " + "class '%s'.",
 							memberField.getName(), objectWithMemberFields.getClass().getName()));
 		}
-	
+
 		HasValue<?> field;
 		// Get the field from the object
 		try {
@@ -242,25 +242,25 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 		List<Field> fields = getFieldsInDeclareOrder(currentClazz);
 
 		Map<String, List<String>> nestedPropertyMap = new HashMap<>();
-		
+
 		for (String p : nestedProperties) {
 			int index = p.indexOf('.', 0);
 			String current = index == -1 ? p : p.substring(0, index);
 			List<String> next = nestedPropertyMap.get(current);
-			if(next == null) {
+			if (next == null) {
 				next = new LinkedList<>();
 				nestedPropertyMap.put(current, next);
 			}
-			if(index != -1) {
-				next.add(p.substring(index+1, p.length()));				
-			}			
+			if (index != -1) {
+				next.add(p.substring(index + 1, p.length()));
+			}
 		}
 
 		for (Field field : fields) {
 			if ((field.getModifiers() & Modifier.STATIC) != 0) {
 				continue;
 			}
-			if(boundProperties.containsKey(path + field.getName())) {
+			if (boundProperties.containsKey(path + field.getName())) {
 				// property already bound, skip
 				continue;
 			}

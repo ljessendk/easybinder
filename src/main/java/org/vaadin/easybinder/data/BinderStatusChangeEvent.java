@@ -18,8 +18,6 @@
 package org.vaadin.easybinder.data;
 import java.util.EventObject;
 
-import com.vaadin.server.Setter;
-
 /**
  * Binder status change event.
  * <p>
@@ -53,13 +51,13 @@ public class BinderStatusChangeEvent extends EventObject {
     public BinderStatusChangeEvent(BasicBinder<?> binder, boolean hasConversionErrors, boolean hasValidationErrors) {
         super(binder);
         this.hasConversionErrors = hasConversionErrors;
-        this.hasValidationErrors = hasValidationErrors;        
+        this.hasValidationErrors = hasValidationErrors;
     }
 
     public boolean hasConversionErrors() {
         return hasConversionErrors;
-    }        
-    
+    }
+
     /**
      * Gets the associated validation status.
      *
@@ -69,7 +67,7 @@ public class BinderStatusChangeEvent extends EventObject {
     public boolean hasValidationErrors() {
         return hasValidationErrors;
     }
-        
+
     public boolean hasErrors() {
     	return hasValidationErrors() || hasConversionErrors();
     }
