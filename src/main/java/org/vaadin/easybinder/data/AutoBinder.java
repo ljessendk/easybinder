@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 
@@ -304,4 +305,32 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 		buildAndBind(clazz, "", components, nestedProperties);
 		return components.stream().toArray(Component[]::new);
 	}
+
+	protected <T> void buildAndBind(Class<?> currentClazz, String path, List<Component> components,
+			Set<Class<?>> nestedClasses) {
+		List<Field> fields = getFieldsInDeclareOrder(currentClazz);
+
+		for (Field field : fields) {
+			if ((field.getModifiers() & Modifier.STATIC) != 0) {
+				continue;
+			}
+			if (boundProperties.containsKey(path + field.getName())) {
+				// property already bound, skip
+				continue;
+			}
+			if (nestedClasses.contains(field.getType())) {
+				buildAndBind(field.getType(), path + field.getName() + ".", components,
+						nestedClasses);
+			} else {
+				components.add(createAndBind(field, path));
+			}
+		}
+	}
+
+	public Component[] buildAndBind(Set<Class<?>> nestedClasses) {
+		List<Component> components = new LinkedList<>();
+		buildAndBind(clazz, "", components, nestedClasses);
+		return components.stream().toArray(Component[]::new);
+	}
+
 }
