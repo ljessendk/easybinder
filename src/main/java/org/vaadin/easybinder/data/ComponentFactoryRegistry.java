@@ -48,7 +48,6 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.DateTimeField;
 import com.vaadin.ui.Grid;
-import com.vaadin.ui.ListSelect;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.TwinColSelect;
 
@@ -106,18 +105,35 @@ public class ComponentFactoryRegistry {
 					EnumSet.class.getTypeParameters()[0]);
 			@SuppressWarnings({ "rawtypes", "unchecked" })
 			Collection<Enum> c = EnumSet.allOf(valueType);
-			@SuppressWarnings({ "rawtypes" })
-			TwinColSelect<Enum> t = new TwinColSelect<Enum>(SharedUtil.camelCaseToHumanFriendly(e.getName()), c);
+			@SuppressWarnings({ "rawtypes", "serial" })
+			TwinColSelect<Enum> t = new TwinColSelect<Enum>(SharedUtil.camelCaseToHumanFriendly(e.getName()), c) { };
 			return t;
 		});
-		addBuildPattern(Set.class, e -> true,
-				e -> new TwinColSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(Collection.class, e -> true,
-				e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(ArrayList.class, e -> true,
-				e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
-		addBuildPattern(List.class, e -> true,
-				e -> new ListSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())));
+
+		addBuildPattern(Set.class, e -> true, e -> {
+			@SuppressWarnings({ "serial" })
+			TwinColSelect<? extends Object> t = new TwinColSelect<Object>(SharedUtil.camelCaseToHumanFriendly(e.getName())) { };
+			return t;
+		});
+		addBuildPattern(Collection.class, e -> String.class.equals((Class<?>) GenericTypeReflector
+				.getTypeParameter(e.getGenericType(), Collection.class.getTypeParameters()[0])), e -> {
+					Grid<String> g = new Grid<String>(SharedUtil.camelCaseToHumanFriendly(e.getName()));
+					g.addColumn(f -> f);
+					return g;
+				});
+		addBuildPattern(ArrayList.class, e -> String.class.equals((Class<?>) GenericTypeReflector
+				.getTypeParameter(e.getGenericType(), ArrayList.class.getTypeParameters()[0])), e -> {
+					Grid<String> g = new Grid<String>(SharedUtil.camelCaseToHumanFriendly(e.getName()));
+					g.addColumn(f -> f);
+					return g;
+				});
+		addBuildPattern(List.class, e -> String.class.equals((Class<?>) GenericTypeReflector
+				.getTypeParameter(e.getGenericType(), List.class.getTypeParameters()[0])), e -> {
+					Grid<String> g = new Grid<String>(SharedUtil.camelCaseToHumanFriendly(e.getName()));
+					g.addColumn(f -> f);
+					return g;
+				});
+
 		addBuildPattern(Map.class, e -> true, e -> {
 			Grid<Map.Entry<?, ?>> g = new Grid<>(SharedUtil.camelCaseToHumanFriendly(e.getName()));
 			g.addColumn(f -> f.getKey());

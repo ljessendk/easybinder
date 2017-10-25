@@ -19,6 +19,7 @@
 package org.vaadin.easybinder.data;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -106,10 +107,10 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 					converter = createToStringConverter();
 					readOnly = true;
 				} else {
-					log.log(Level.WARNING,
-							"Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>. Please register a converter. Using default assignment converter",
+					log.log(Level.SEVERE,
+							"Unable to find converter between presentationType=<{0}> and modelType=<{1}> for property=<{2}>. Please register a converter.",
 							new Object[] { presentationTypeClass.get(), modelTypeClass, propertyName });
-					converter = createCastConverter(modelTypeClass);
+					throw new RuntimeException("No valid converter found for property=" + propertyName);
 				}
 			}
 		} else {
@@ -204,9 +205,15 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 		// Try to find the field type using reflection. This will work for any fields
 		// except fields with generic types.
-		Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
-		if (valueType != null) {
-			return Optional.of((Class<PRESENTATION>) valueType);
+		if (field instanceof HasValue) {
+			Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
+			if (valueType != null) {
+				if (valueType instanceof ParameterizedType) {
+					ParameterizedType pType = (ParameterizedType) valueType;
+					return Optional.of((Class<PRESENTATION>) pType.getRawType());
+				}
+				return Optional.of((Class<PRESENTATION>) valueType);
+			}
 		}
 
 		// Not possible to find using reflection (due to type erasure).

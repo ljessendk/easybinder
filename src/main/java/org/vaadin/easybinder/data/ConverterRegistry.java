@@ -21,8 +21,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.vaadin.easybinder.data.converters.NullConverter;
 import org.vaadin.easybinder.data.converters.StringLengthConverterValidator;
@@ -51,6 +53,7 @@ public class ConverterRegistry {
 		return instance;
 	}
 
+	@SuppressWarnings("unchecked")
 	private ConverterRegistry() {
 
 		registerConverter(String.class, int.class, new StringLengthConverterValidator("Must be a number", 1, null)
@@ -98,6 +101,8 @@ public class ConverterRegistry {
 
 		registerConverter(LocalDateTime.class, Date.class, new LocalDateTimeToDateConverter(ZoneId.systemDefault()));
 		registerConverter(LocalDate.class, Date.class, new LocalDateToDateConverter());
+
+		registerConverter(Set.class, EnumSet.class, Converter.from(e -> Result.ok(EnumSet.copyOf(e)), e -> e));
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
