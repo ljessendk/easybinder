@@ -1,7 +1,6 @@
-package org.vaadin.easybinder.data;
+package org.vaadin.easybinder.usagetest;
 
 import static info.solidsoft.mockito.java8.AssertionMatcher.assertArg;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
@@ -90,26 +89,22 @@ public class BasicBinderGroupingTest {
 
 		BinderStatusChangeListener statusChangeListener = mock(BinderStatusChangeListener.class);
 		binder.addStatusChangeListener(statusChangeListener);
-				
+
 		binder.bind(field1, d -> d.getS1() == null ? "" : d.getS1(), (e, f) -> e.setS1("".equals(f) ? null : f), "s1");
 		binder.bind(field2, d -> d.getS2() == null ? "" : d.getS2(), (e, f) -> e.setS2("".equals(f) ? null : f), "s2");
 
-		/*
-		 * binder.forField(field1) .withNullRepresentation("") .bind("s1");
-		 * binder.forField(field2) .withNullRepresentation("") .bind("s2");
-		 */
 		binder.setStatusLabel(statusLabel);
 
 		reset(statusChangeListener);
-		
+
 		MyEntity bean = new MyEntity();
 
 		assertTrue(binder.isValid());
-		
+
 		bean.setS1("test");
 
 		assertTrue(binder.isValid());
-		
+
 		binder.setBean(bean);
 
 		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));
@@ -117,52 +112,23 @@ public class BasicBinderGroupingTest {
 		assertFalse(binder.isValid());
 
 		reset(statusChangeListener);
-		
+
 		field1.setValue("");
 
 		assertTrue(binder.isValid());
-		
+
 		verify(statusChangeListener, atLeast(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
-		
+
 		reset(statusChangeListener);
-		
+
 		field1.setValue("test");
-		
-		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));		
+
+		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertTrue(sc.hasValidationErrors())));
 
 		reset(statusChangeListener);
-		
+
 		binder.removeBean();
-		
-		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));		
+
+		verify(statusChangeListener, times(1)).statusChange(assertArg(sc -> assertFalse(sc.hasValidationErrors())));
 	}
-
-	@Test
-	public void testGroupValidationExplicitGroup() {
-		TextField field1 = new TextField();
-		Label statusLabel = new Label();
-
-		BasicBinder<MyEntity2> binder = new BasicBinder<>();
-
-		binder.bind(field1, d -> d.getS1() == null ? "" : d.getS1(), (e, f) -> e.setS1("".equals(f) ? null : f), "s1");
-
-		binder.setStatusLabel(statusLabel);
-
-		MyEntity2 bean = new MyEntity2();
-
-		binder.setBean(bean);
-
-		assertTrue(binder.isValid());
-
-		binder.setValidationGroups(MyGroup.class);
-
-		assertFalse(binder.isValid());
-		
-		assertEquals(1, binder.getValidationGroups().length);
-		
-		binder.clearValidationGroups();
-		
-		assertTrue(binder.isValid());
-	}
-
 }

@@ -27,7 +27,7 @@ import com.vaadin.ui.Label;
 
 @SuppressWarnings("serial")
 public class BinderAdapter<BEAN> extends Binder<BEAN> {
-	BasicBinder<BEAN> binder;
+	transient BasicBinder<BEAN> binder;
 	Class<BEAN> clz;
 
 	BinderValidationStatusHandler<BEAN> statusHandler;
@@ -239,6 +239,7 @@ public class BinderAdapter<BEAN> extends Binder<BEAN> {
 	}
 
 	// @Override (Since 8.1)
+	@Override
 	public Stream<HasValue<?>> getFields() {
 		return binder.getFields();
 	}

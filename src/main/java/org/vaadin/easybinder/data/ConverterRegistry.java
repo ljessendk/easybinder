@@ -23,6 +23,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -102,7 +103,7 @@ public class ConverterRegistry {
 		registerConverter(LocalDateTime.class, Date.class, new LocalDateTimeToDateConverter(ZoneId.systemDefault()));
 		registerConverter(LocalDate.class, Date.class, new LocalDateToDateConverter());
 
-		registerConverter(Set.class, EnumSet.class, Converter.from(e -> Result.ok(EnumSet.copyOf(e)), e -> e));
+		registerConverter(Set.class, EnumSet.class, Converter.from(e -> e.isEmpty() ? Result.ok(null) : Result.ok(EnumSet.copyOf(e)), e -> e == null ? new HashSet<Object>() : e));
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })

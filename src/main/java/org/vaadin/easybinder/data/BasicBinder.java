@@ -40,12 +40,12 @@ import com.vaadin.data.BindingValidationStatus;
 import com.vaadin.data.BindingValidationStatus.Status;
 import com.vaadin.data.Converter;
 import com.vaadin.data.HasValue;
+import com.vaadin.data.HasValue.ValueChangeEvent;
+import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.data.Result;
 import com.vaadin.data.ValidationResult;
 import com.vaadin.data.ValueContext;
 import com.vaadin.data.ValueProvider;
-import com.vaadin.data.HasValue.ValueChangeEvent;
-import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.event.EventRouter;
 import com.vaadin.server.Setter;
 import com.vaadin.server.UserError;
@@ -62,16 +62,16 @@ public class BasicBinder<BEAN> {
 		protected final HasValue<FIELDVALUE> field;
 		protected final ValueProvider<BEAN, TARGET> getter;
 		protected final Setter<BEAN, TARGET> setter;
-		protected final Optional<String> property;
+		protected final String property;
 
 		protected final Converter<FIELDVALUE, TARGET> converterValidatorChain;
 		protected Registration registration;
 
-		protected Optional<String> conversionError = Optional.empty();
-		protected Optional<String> validationError = Optional.empty();
+		protected String conversionError = null;
+		protected String validationError = null;
 
 		public EasyBinding(BasicBinder<BEAN> binder, HasValue<FIELDVALUE> field, ValueProvider<BEAN, TARGET> getter,
-				Setter<BEAN, TARGET> setter, Optional<String> property,
+				Setter<BEAN, TARGET> setter, String property,
 				Converter<FIELDVALUE, TARGET> converterValidatorChain) {
 			this.field = field;
 			this.getter = getter;
@@ -112,9 +112,7 @@ public class BasicBinder<BEAN> {
 			result.ifError(e -> setConversionError(e));
 			result.ifOk(e -> {
 				clearConversionError();
-				if (setter != null) {
-					setter.accept(bean, e);
-				}
+				setter.accept(bean, e);
 			});
 			return !result.isError();
 		}
@@ -156,15 +154,15 @@ public class BasicBinder<BEAN> {
 		}
 
 		public Optional<String> getProperty() {
-			return property;
+			return Optional.ofNullable(property);
 		}
 
 		public boolean hasValidationError() {
-			return validationError.isPresent();
+			return validationError != null;
 		}
 
 		public boolean hasConversionError() {
-			return conversionError.isPresent();
+			return conversionError != null;
 		}
 
 		public boolean hasError() {
@@ -174,42 +172,38 @@ public class BasicBinder<BEAN> {
 		@Override
 		public BindingValidationStatus<FIELDVALUE> validate() {
 			return new BindingValidationStatus<FIELDVALUE>(this, hasError() ? Status.ERROR : Status.OK,
-					conversionError.isPresent() ? ValidationResult.error(conversionError.get())
-							: validationError.isPresent() ? ValidationResult.error(validationError.get())
+					conversionError != null ? ValidationResult.error(conversionError)
+							: validationError != null ? ValidationResult.error(validationError)
 									: ValidationResult.ok());
 		}
 
 		protected void setConversionError(String errorMessage) {
 			Objects.requireNonNull(errorMessage);
-			conversionError = Optional.of(errorMessage);
+			conversionError = errorMessage;
 		}
 
 		protected void clearConversionError() {
-			conversionError = Optional.empty();
-		}
-
-		public Optional<String> getConversionError() {
-			return conversionError;
+			conversionError = null;
 		}
 
 		public void setValidationError(String errorMessage) {
 			Objects.requireNonNull(errorMessage);
-			validationError = Optional.of(errorMessage);
+			validationError = errorMessage;
 		}
 
 		public void clearValidationError() {
-			validationError = Optional.empty();
+			validationError = null;
 		}
 
 		public Optional<String> getValidationError() {
-			return validationError;
+			return Optional.ofNullable(validationError);
 		}
 
 		public Optional<String> getError() {
-			if (conversionError.isPresent()) {
-				return conversionError;
+			if (conversionError != null) {
+				return Optional.of(conversionError);
 			} else {
-				return validationError;
+				return Optional.ofNullable(validationError);
 			}
 		}
 
@@ -268,7 +262,7 @@ public class BasicBinder<BEAN> {
 	}
 
 	public Class<?>[] getValidationGroups() {
-		return groups;
+		return groups.clone();
 	}
 
 	public void clearValidationGroups() {
@@ -280,7 +274,7 @@ public class BasicBinder<BEAN> {
 		return constraintViolations.isEmpty();
 	}
 
-	public <FIELDVALUE, TARGET> EasyBinding<BEAN, FIELDVALUE, ?> bind(HasValue<FIELDVALUE> field,
+	public <FIELDVALUE, TARGET> EasyBinding<BEAN, FIELDVALUE, FIELDVALUE> bind(HasValue<FIELDVALUE> field,
 			ValueProvider<BEAN, FIELDVALUE> getter, Setter<BEAN, FIELDVALUE> setter, String property) {
 		return bind(field, getter, setter, property, Converter.identity());
 	}
@@ -295,7 +289,7 @@ public class BasicBinder<BEAN> {
 
 		// Register as binding
 		EasyBinding<BEAN, FIELDVALUE, TARGET> binding = new EasyBinding<BEAN, FIELDVALUE, TARGET>(this, field, getter,
-				setter, Optional.ofNullable(property), converter);
+				setter, property, converter);
 
 		// TODO: remove from binding
 		/*
@@ -322,7 +316,7 @@ public class BasicBinder<BEAN> {
 		return binding;
 	}
 
-	public void unbind() {
+	public void removeAllBindings() {
 		while (!bindings.isEmpty()) {
 			EasyBinding<BEAN, ?, ?> binding = bindings.remove(0);
 			binding.getProperty().ifPresent(e -> propertyToBindingMap.remove(e));

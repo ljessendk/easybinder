@@ -7,12 +7,6 @@ import com.vaadin.data.ValueContext;
 @SuppressWarnings("serial")
 public class NullConverterPrimitiveTarget<T> implements Converter<T, T> {
 
-	protected T nullRepresentation;
-
-	public NullConverterPrimitiveTarget(T nullRepresentation) {
-		this.nullRepresentation = nullRepresentation;
-	}
-
 	@Override
 	public Result<T> convertToModel(T value, ValueContext context) {
 		return value == null ? Result.error("Null not allowed") : Result.ok(value);
@@ -20,6 +14,6 @@ public class NullConverterPrimitiveTarget<T> implements Converter<T, T> {
 
 	@Override
 	public T convertToPresentation(T value, ValueContext context) {
-		return value == null ? nullRepresentation : value;
+		return value;
 	}
 }

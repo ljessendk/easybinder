@@ -1,13 +1,10 @@
-package org.vaadin.easybinder.data;
+package org.vaadin.easybinder.usagetest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
 import javax.validation.constraints.Size;
 
 import org.junit.Test;
@@ -41,21 +38,19 @@ public class BasicBinderStringTest {
 		}
 	}
 
-	ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-	Validator validator = factory.getValidator();
+	BasicBinder<MyEntity> binder = new BasicBinder<>();
+	BasicBinder<MyEntitySizeMin1> binderSizeMin = new BasicBinder<>();
 
 	@Test
-	public void testNullRepresentation() {
+	public void testStringNullRepresentation() {
 		TextField field = new TextField();
 
 		// Bind with null representation
-		BasicBinder<MyEntity> binder = new BasicBinder<>();
 		binder.bind(field, d -> d.getText() == null ? "" : d.getText(), (e, f) -> e.setText("".equals(f) ? null : f),
 				"text");
 
 		MyEntity bean = new MyEntity();
 
-		assertTrue(validator.validate(bean).isEmpty());
 		assertTrue(binder.isValid());
 
 		binder.setBean(bean);
@@ -66,7 +61,6 @@ public class BasicBinderStringTest {
 		field.setValue("");
 		assertNull(bean.getText());
 
-		assertTrue(validator.validate(bean).isEmpty());
 		assertTrue(binder.isValid());
 	}
 
@@ -75,20 +69,14 @@ public class BasicBinderStringTest {
 		TextField field = new TextField();
 
 		// Bind with null representation
-		BasicBinder<MyEntitySizeMin1> binder = new BasicBinder<>();
-		binder.bind(field, d -> d.getText() == null ? "" : d.getText(), (e, f) -> e.setText("".equals(f) ? null : f),
+		binderSizeMin.bind(field, d -> d.getText() == null ? "" : d.getText(), (e, f) -> e.setText("".equals(f) ? null : f),
 				"text");
-
-		/*
-		 * binder.forField(field) .withNullRepresentation("") .bind("text");
-		 */
 
 		MyEntitySizeMin1 bean = new MyEntitySizeMin1();
 
-		assertTrue(validator.validate(bean).isEmpty());
 		assertTrue(binder.isValid());
 
-		binder.setBean(bean);
+		binderSizeMin.setBean(bean);
 
 		field.setValue("test");
 		assertEquals("test", bean.getText());
@@ -96,34 +84,28 @@ public class BasicBinderStringTest {
 		field.setValue("");
 		assertNull(bean.getText());
 
-		assertTrue(validator.validate(bean).isEmpty());
-		assertTrue(binder.isValid());
+		assertTrue(binderSizeMin.isValid());
 	}
 
 	@Test
 	public void testSizeMin1() {
 		TextField field = new TextField();
 
-		BasicBinder<MyEntitySizeMin1> binder = new BasicBinder<>();
-		binder.bind(field, d -> d.getText(), (e, f) -> e.setText(f), "text");
-		/*
-		 * binder.forField(field) .bind("text");
-		 */
+		binderSizeMin.bind(field, d -> d.getText(), (e, f) -> e.setText(f), "text");
 		field.setValue("reset");
 
 		MyEntitySizeMin1 bean = new MyEntitySizeMin1();
 
 		bean.setText("");
-		binder.setBean(bean);
+		binderSizeMin.setBean(bean);
 
 		field.setValue("test");
 		assertEquals("test", bean.getText());
 
-		assertTrue(validator.validate(bean).isEmpty());
 		assertTrue(binder.isValid());
 
 		field.setValue("");
-		assertFalse(binder.isValid());
+		assertFalse(binderSizeMin.isValid());
 		assertEquals("", bean.getText());
 
 	}
@@ -132,37 +114,18 @@ public class BasicBinderStringTest {
 	public void testValid() {
 		TextField text = new TextField();
 
-		ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-		Validator validator = factory.getValidator();
-
-		BasicBinder<MyEntity> binder = new BasicBinder<>();
 		binder.bind(text, d -> d.getText() == null ? "" : d.getText(), (e, f) -> e.setText("".equals(f) ? null : f),
 				"text");
 
-		/*
-		 * binder.forField(text) .withNullRepresentation("") .bind("text");
-		 */
 		MyEntity t = new MyEntity();
 
-		// valid
 		t.setText("bla");
 		binder.setBean(t);
 
-		assertTrue(validator.validate(t).isEmpty());
 		assertTrue(binder.isValid());
 
 		text.setValue("");
 		assertNull(t.getText());
-
-		/*
-		 * // invalid t.setText(""); binder.setBean(t);
-		 * assertFalse(validator.validate(t).isEmpty());
-		 * assertFalse(binder.validate().isOk());
-		 * 
-		 * t.setText(null); binder.setBean(t);
-		 * assertTrue(validator.validate(t).isEmpty());
-		 * assertTrue(binder.validate().isOk());
-		 */
 	}
 
 }

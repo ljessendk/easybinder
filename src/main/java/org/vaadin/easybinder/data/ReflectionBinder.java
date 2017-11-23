@@ -88,13 +88,9 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 		Optional<Class<PRESENTATION>> presentationTypeClass = getPresentationTypeForField(field);
 
-		Class<?> modelTypeClass = definition.getType();
-
-		// Hack as PropertyDefinition does not return primitive type
+		// PropertyDefinition does not return primitive type, so need to get it by field name
 		Optional<Field> modelField = getDeclaredFieldByName(definition.getPropertyHolderType(), definition.getName());
-		if (modelField.isPresent()) {
-			modelTypeClass = modelField.get().getType();
-		}
+		Class<?> modelTypeClass = modelField.get().getType();
 
 		Converter<PRESENTATION, ?> converter = null;
 		if (presentationTypeClass.isPresent()) {
@@ -149,10 +145,8 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		boundProperties.put(propertyName, binding);
 
 		Optional<Field> modelField = getDeclaredFieldByName(definition.getPropertyHolderType(), definition.getName());
-		if (modelField.isPresent()) {
-			if (Arrays.asList(modelField.get().getAnnotations()).stream().anyMatch(requiredConfigurator)) {
-				field.setRequiredIndicatorVisible(true);
-			}
+		if (Arrays.asList(modelField.get().getAnnotations()).stream().anyMatch(requiredConfigurator)) {
+			field.setRequiredIndicatorVisible(true);
 		}
 
 		return binding;
@@ -170,7 +164,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		} else if (ReflectTools.convertPrimitiveType(presentationType)
 				.equals(ReflectTools.convertPrimitiveType(modelType))) {
 			if (modelType.isPrimitive()) {
-				converter = (Converter<PRESENTATION, MODEL>) new NullConverterPrimitiveTarget<PRESENTATION>(emptyValue);
+				converter = (Converter<PRESENTATION, MODEL>) new NullConverterPrimitiveTarget<PRESENTATION>();
 				log.log(Level.INFO, "Converter for primitive {0}->{1} found by identity",
 						new Object[] { presentationType, modelType });
 			} else {
@@ -193,10 +187,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> createToStringConverter() {
-		return (Converter) Converter.from(null, fieldValue -> fieldValue == null ? "" : fieldValue.toString(),
-				exception -> {
-					throw new RuntimeException(exception);
-				});
+		return (Converter) Converter.from(null, fieldValue -> fieldValue == null ? "" : fieldValue.toString());
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -205,15 +196,13 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 		// Try to find the field type using reflection. This will work for any fields
 		// except fields with generic types.
-		if (field instanceof HasValue) {
-			Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
-			if (valueType != null) {
-				if (valueType instanceof ParameterizedType) {
-					ParameterizedType pType = (ParameterizedType) valueType;
-					return Optional.of((Class<PRESENTATION>) pType.getRawType());
-				}
-				return Optional.of((Class<PRESENTATION>) valueType);
+		Type valueType = GenericTypeReflector.getTypeParameter(field.getClass(), HasValue.class.getTypeParameters()[0]);
+		if (valueType != null) {
+			if (valueType instanceof ParameterizedType) {
+				ParameterizedType pType = (ParameterizedType) valueType;
+				return Optional.of((Class<PRESENTATION>) pType.getRawType());
 			}
+			return Optional.of((Class<PRESENTATION>) valueType);
 		}
 
 		// Not possible to find using reflection (due to type erasure).
@@ -241,12 +230,9 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		if (field instanceof HasItems) {
 			HasItems<PRESENTATION> hasItems = (HasItems<PRESENTATION>) field;
 			DataProvider<?, ?> dp = hasItems.getDataProvider();
-			if (dp != null) {
-				Query<?, ?> q = new Query<>(0, 1, null, null, null);
-				if (dp.size((Query) q) > 0) {
-					return hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass());
-				}
-
+			Query<?, ?> q = new Query<>(0, 1, null, null, null);
+			if (dp.size((Query) q) > 0) {
+				return hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass());
 			}
 		}
 
