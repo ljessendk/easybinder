@@ -25,7 +25,7 @@ public class EComboBox<T> extends ComboBox<T> implements HasGenericType<T> {
 	}
 
 	public EComboBox(Class<T> type, String caption, Collection<T> items) {
-		super(caption);
+		super(caption, items);
 		this.type = type;
 	}
 

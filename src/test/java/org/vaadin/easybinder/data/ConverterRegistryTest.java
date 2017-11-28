@@ -70,9 +70,23 @@ public class ConverterRegistryTest {
 	}
 
 	@Test
+	public void testStringToCharacterConverterConvertToModelNullInput() {
+		Converter<String, Character> c = r.getConverter(String.class, Character.class);
+		Result<Character> res = c.convertToModel(null, null);
+		assertFalse(res.isError());
+		res.ifOk(e -> assertNull(e));
+	}
+
+	@Test
 	public void testStringtoCharacterConverterConvertToPresentation() {
 		Converter<String, Character> c = r.getConverter(String.class, Character.class);
 		assertEquals("B", c.convertToPresentation('B', null));
+	}
+
+	@Test
+	public void testStringtoCharacterConverterConvertToPresentationNull() {
+		Converter<String, Character> c = r.getConverter(String.class, Character.class);
+		assertEquals("", c.convertToPresentation(null, null));
 	}
 
 	@Test
