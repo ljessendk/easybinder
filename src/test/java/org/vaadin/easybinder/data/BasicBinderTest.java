@@ -26,6 +26,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.vaadin.easybinder.data.BasicBinder;
 import org.vaadin.easybinder.data.BinderStatusChangeListener;
 import org.vaadin.easybinder.data.BasicBinder.EasyBinding;
@@ -101,7 +102,8 @@ public class BasicBinderTest {
 		@SuppressWarnings("unchecked")
 		HasValue<String> field = mock(HasValue.class);
 		EasyBinding<MyEntity, String, String> binding = binder.bind(field, MyEntity::getLastName, null, "firstName");
-		assertFalse(binding.fieldToBean(bean));
+		binding.read(bean);
+		assertFalse(binding.hasConversionError());
 	}
 
 	@Test
@@ -111,7 +113,8 @@ public class BasicBinderTest {
 		HasValue<String> field = mock(HasValue.class);
 		when(field.isReadOnly()).thenReturn(true);
 		EasyBinding<MyEntity, String, String> binding = binder.bind(field, MyEntity::getLastName, MyEntity::setLastName, "firstName");
-		assertFalse(binding.fieldToBean(bean));
+		binding.read(bean);
+		assertFalse(binding.hasConversionError());
 	}
 
 	@Test
@@ -395,6 +398,37 @@ public class BasicBinderTest {
 		assertEquals(0, binder.getConstraintViolations().size());
 		binder.setBean(new MyEntity());
 		assertEquals(1, binder.getConstraintViolations().size());
+	}
+
+	@Test
+	public void testGetValidationStatusNoError() {
+		binder.bind(firstName, e -> e.getFirstName(), null, "firstName", new NullConverter<>(""));
+		assertEquals(0, binder.getValidationStatus().getFieldValidationErrors().size());
+		MyEntity e = new MyEntity();
+		e.setFirstName("giraf");
+		binder.setBean(e);
+		assertEquals(0, binder.getValidationStatus().getFieldValidationErrors().size());
+		assertEquals(1, binder.getValidationStatus().getFieldValidationStatuses().size());
+	}
+
+	@Test
+	public void testGetValidationStatusFieldValidationError() {
+		binder.bind(firstName, e -> e.getFirstName(), null, "firstName", new NullConverter<>(""));
+		binder.setBean(new MyEntity());
+		assertEquals(1, binder.getValidationStatus().getFieldValidationErrors().size());
+	}
+
+	@Test
+	public void testSetValidationStatusHandler() {
+		@SuppressWarnings("unchecked")
+		BasicBinderValidationStatusHandler<MyEntity> h = mock(BasicBinderValidationStatusHandler.class);
+		binder.setValidationStatusHandler(h);
+		binder.bind(firstName, e -> e.getFirstName(), null, "firstName", new NullConverter<>(""));
+		binder.setBean(new MyEntity());
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<BasicBinderValidationStatus<MyEntity>> c = ArgumentCaptor.forClass(BasicBinderValidationStatus.class);
+		verify(h, atLeast(1)).statusChange(c.capture());
+		assertEquals(1, c.getValue().getFieldValidationErrors().size());
 	}
 
 	@Test

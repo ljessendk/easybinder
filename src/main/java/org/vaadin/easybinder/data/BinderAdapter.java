@@ -3,7 +3,6 @@ package org.vaadin.easybinder.data;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.vaadin.easybinder.data.BasicBinder.EasyBinding;
@@ -16,7 +15,6 @@ import com.vaadin.data.HasValue;
 import com.vaadin.data.StatusChangeEvent;
 import com.vaadin.data.StatusChangeListener;
 import com.vaadin.data.ValidationException;
-import com.vaadin.data.ValidationResult;
 import com.vaadin.data.Validator;
 import com.vaadin.data.ValueProvider;
 import com.vaadin.data.HasValue.ValueChangeListener;
@@ -113,11 +111,8 @@ public class BinderAdapter<BEAN> extends Binder<BEAN> {
 	@Override
 	public void writeBean(BEAN bean) throws ValidationException {
 		if (!binder.isValid()) {
-			throw new ValidationException(
-					binder.bindings.stream().map(e -> e.validate()).filter(e -> e.isError())
-							.collect(Collectors.toList()),
-					binder.constraintViolations.stream().filter(e -> e.getPropertyPath().toString().equals(""))
-							.map(e -> ValidationResult.error(e.getMessage())).collect(Collectors.toList()));
+			BasicBinderValidationStatus<BEAN> vs = binder.getValidationStatus();
+			throw new ValidationException(vs.getFieldValidationErrors(), vs.getBeanValidationErrors());
 		}
 
 		BEAN sourceBean = binder.getBean();
@@ -168,10 +163,8 @@ public class BinderAdapter<BEAN> extends Binder<BEAN> {
 
 	@Override
 	public BinderValidationStatus<BEAN> validate() {
-		return new BinderValidationStatus<BEAN>(this,
-				binder.getBindings().stream().map(e -> e.validate()).collect(Collectors.toList()),
-				binder.getConstraintViolations().stream().filter(e -> e.getPropertyPath().toString().equals(""))
-						.map(e -> ValidationResult.error(e.getMessage())).collect(Collectors.toList()));
+		BasicBinderValidationStatus<BEAN> vs = binder.getValidationStatus();
+		return new BinderValidationStatus<BEAN>(this, vs.getFieldValidationStatuses(), vs.getBeanValidationResults());
 	}
 
 	@Override
@@ -239,7 +232,6 @@ public class BinderAdapter<BEAN> extends Binder<BEAN> {
 	}
 
 	// @Override (Since 8.1)
-	@Override
 	public Stream<HasValue<?>> getFields() {
 		return binder.getFields();
 	}

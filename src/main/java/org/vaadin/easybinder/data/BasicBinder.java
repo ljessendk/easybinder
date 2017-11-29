@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.validation.ConstraintViolation;
@@ -38,6 +39,7 @@ import javax.validation.Validator;
 import com.vaadin.data.Binder.Binding;
 import com.vaadin.data.BindingValidationStatus;
 import com.vaadin.data.BindingValidationStatus.Status;
+import com.vaadin.data.BindingValidationStatusHandler;
 import com.vaadin.data.Converter;
 import com.vaadin.data.HasValue;
 import com.vaadin.data.HasValue.ValueChangeEvent;
@@ -70,6 +72,19 @@ public class BasicBinder<BEAN> {
 		protected String conversionError = null;
 		protected String validationError = null;
 
+		protected BindingValidationStatusHandler statusHandler = s -> {
+			HasValue<?> field = s.getField();
+			if (s.getMessage().isPresent()) {
+				if (field instanceof AbstractComponent) {
+					((AbstractComponent) field).setComponentError(new UserError(s.getMessage().get()));
+				}
+			} else {
+				if (field instanceof AbstractComponent) {
+					((AbstractComponent) field).setComponentError(null);
+				}
+			}
+		};
+
 		public EasyBinding(BasicBinder<BEAN> binder, HasValue<FIELDVALUE> field, ValueProvider<BEAN, TARGET> getter,
 				Setter<BEAN, TARGET> setter, String property,
 				Converter<FIELDVALUE, TARGET> converterValidatorChain) {
@@ -96,25 +111,8 @@ public class BasicBinder<BEAN> {
 			field.setReadOnly(setter == null || readOnly);
 		}
 
-		public void remove() {
-			registration.remove();
-		}
-
 		public void beanToField(BEAN bean) {
 			field.setValue(converterValidatorChain.convertToPresentation(getter.apply(bean), createValueContext()));
-		}
-
-		public boolean fieldToBean(BEAN bean) {
-			if (setter == null || field.isReadOnly()) {
-				return false;
-			}
-			Result<TARGET> result = converterValidatorChain.convertToModel(field.getValue(), createValueContext());
-			result.ifError(e -> setConversionError(e));
-			result.ifOk(e -> {
-				clearConversionError();
-				setter.accept(bean, e);
-			});
-			return !result.isError();
 		}
 
 		@Override
@@ -171,10 +169,7 @@ public class BasicBinder<BEAN> {
 
 		@Override
 		public BindingValidationStatus<FIELDVALUE> validate() {
-			return new BindingValidationStatus<FIELDVALUE>(this, hasError() ? Status.ERROR : Status.OK,
-					conversionError != null ? ValidationResult.error(conversionError)
-							: validationError != null ? ValidationResult.error(validationError)
-									: ValidationResult.ok());
+			return validate(true);
 		}
 
 		protected void setConversionError(String errorMessage) {
@@ -211,6 +206,47 @@ public class BasicBinder<BEAN> {
 			return getter;
 		}
 
+		// Since 8.2
+		//@Override
+		//@SuppressWarnings("deprecation")
+		public BindingValidationStatus<FIELDVALUE> validate(boolean fireEvent) {
+			BindingValidationStatus<FIELDVALUE> status = new BindingValidationStatus<FIELDVALUE>(this, hasError() ? Status.ERROR : Status.OK,
+					conversionError != null ? ValidationResult.error(conversionError)
+							: validationError != null ? ValidationResult.error(validationError)
+									: ValidationResult.ok());
+			if (fireEvent) {
+				getValidationStatusHandler().statusChange(status);
+			}
+
+			return status;
+		}
+
+		// Since 8.2
+		//@Override
+		public BindingValidationStatusHandler getValidationStatusHandler() {
+			return statusHandler;
+		}
+
+		// Since 8.2
+		//@Override
+		public void unbind() {
+			registration.remove();
+		}
+
+		// Since 8.2
+		//@Override
+		public void read(BEAN bean) {
+			if (setter == null || field.isReadOnly()) {
+				return;
+			}
+			Result<TARGET> result = converterValidatorChain.convertToModel(field.getValue(), createValueContext());
+			result.ifError(e -> setConversionError(e));
+			result.ifOk(e -> {
+				clearConversionError();
+				setter.accept(bean, e);
+			});
+		}
+
 	}
 
 	protected BEAN bean;
@@ -230,6 +266,10 @@ public class BasicBinder<BEAN> {
 
 	protected EventRouter eventRouter;
 
+	protected BasicBinderValidationStatusHandler<BEAN> statusHandler;
+
+	protected BasicBinderValidationStatus<BEAN> status;
+
 	public BasicBinder() {
 		validate();
 	}
@@ -243,7 +283,6 @@ public class BasicBinder<BEAN> {
 
 		this.bean = bean;
 		validate();
-		bindings.forEach(e -> handleError(e.getField(), e.getError()));
 		fireStatusChangeEvent();
 		hasChanges = false;
 	}
@@ -320,7 +359,7 @@ public class BasicBinder<BEAN> {
 		while (!bindings.isEmpty()) {
 			EasyBinding<BEAN, ?, ?> binding = bindings.remove(0);
 			binding.getProperty().ifPresent(e -> propertyToBindingMap.remove(e));
-			binding.remove();
+			binding.unbind();
 		}
 	}
 
@@ -342,7 +381,7 @@ public class BasicBinder<BEAN> {
 
 	protected <FIELDVALUE, TARGET> void clearBinding(EasyBinding<BEAN, FIELDVALUE, TARGET> binding) {
 		if (bindings.remove(binding)) {
-			binding.remove();
+			binding.unbind();
 		}
 		binding.getProperty().ifPresent(e -> propertyToBindingMap.remove(e));
 	}
@@ -356,9 +395,6 @@ public class BasicBinder<BEAN> {
 		String property = v.getPropertyPath().toString();
 		if (property.isEmpty()) {
 			// Bean level validation error
-			if (statusLabel != null) {
-				statusLabel.setValue(f.apply(v));
-			}
 		} else {
 			// Field validation error
 			Optional.ofNullable(propertyToBindingMap.get(property)).ifPresent(e -> e.setValidationError(f.apply(v)));
@@ -366,9 +402,6 @@ public class BasicBinder<BEAN> {
 	}
 
 	protected void validate() {
-		// Clear validation errors
-		getStatusLabel().ifPresent(e -> e.setValue(""));
-
 		// Clear all validation errors
 		propertyToBindingMap.values().stream().forEach(e -> e.clearValidationError());
 
@@ -376,26 +409,22 @@ public class BasicBinder<BEAN> {
 		if (getBean() != null) {
 			constraintViolations = validator.validate(getBean(), groups);
 			constraintViolations.stream().forEach(e -> handleConstraintViolations(e, f -> f.getMessage()));
-			// Handle errors
-			propertyToBindingMap.values().stream().forEach(e -> handleError(e.getField(), e.getError()));
 		} else {
 			constraintViolations = new HashSet<ConstraintViolation<BEAN>>();
 		}
-	}
 
-	/**
-	 * Clears the error condition of the given field, if any. The default
-	 * implementation clears the
-	 * {@link AbstractComponent#setComponentError(ErrorMessage) component error} of
-	 * the field if it is a Component, otherwise does nothing.
-	 *
-	 * @param field
-	 *            the field with an invalid value
-	 */
-	protected void clearError(HasValue<?> field) {
-		if (field instanceof AbstractComponent) {
-			((AbstractComponent) field).setComponentError(null);
-		}
+		List<BindingValidationStatus<?>> binRes =
+				getBindings().stream().map(e -> e.validate(false)).collect(Collectors.toList());
+
+		List<ValidationResult> valRes =
+				constraintViolations.stream()
+				.filter(e -> e.getPropertyPath().toString().isEmpty())
+				.map(e -> ValidationResult.error(e.getMessage()))
+				.collect(Collectors.toList());
+
+		status = new BasicBinderValidationStatus<BEAN>(this, binRes, valRes);
+
+		getValidationStatusHandler().statusChange(status);
 	}
 
 	/**
@@ -406,31 +435,6 @@ public class BasicBinder<BEAN> {
 	 */
 	public Optional<Label> getStatusLabel() {
 		return Optional.ofNullable(statusLabel);
-	}
-
-	protected void handleError(HasValue<?> field, Optional<String> error) {
-		if (error.isPresent()) {
-			setError(field, error.get());
-		} else {
-			clearError(field);
-		}
-	}
-
-	/**
-	 * Handles a validation error emitted when trying to write the value of the
-	 * given field. The default implementation sets the
-	 * {@link AbstractComponent#setComponentError(ErrorMessage) component error} of
-	 * the field if it is a Component, otherwise does nothing.
-	 *
-	 * @param field
-	 *            the field with the invalid value
-	 * @param error
-	 *            the error message to set
-	 */
-	protected void setError(HasValue<?> field, String error) {
-		if (field instanceof AbstractComponent) {
-			((AbstractComponent) field).setComponentError(new UserError(error));
-		}
 	}
 
 	public void setStatusLabel(Label statusLabel) {
@@ -525,8 +529,8 @@ public class BasicBinder<BEAN> {
 	protected boolean fieldToBean(EasyBinding<BEAN, ?, ?> binding) {
 		Optional<String> currentError = binding.getError();
 
-		boolean conversionOk = binding.fieldToBean(getBean());
-		if (conversionOk) {
+		binding.read(getBean());
+		if (!binding.hasConversionError()) {
 			Optional<String> currentValidationError = binding.getValidationError();
 			validate();
 			if (!currentValidationError.equals(binding.getValidationError())) {
@@ -536,11 +540,11 @@ public class BasicBinder<BEAN> {
 		}
 
 		if (!currentError.equals(binding.getError())) {
-			handleError(binding.getField(), binding.getError());
+			binding.validate(true);
 		}
 		fireStatusChangeEvent();
 
-		return conversionOk;
+		return !binding.hasConversionError();
 	}
 
 	public List<EasyBinding<BEAN, ?, ?>> getBindings() {
@@ -551,4 +555,66 @@ public class BasicBinder<BEAN> {
 		return constraintViolations;
 	}
 
+    /**
+     * Sets the status handler to track form status changes.
+     * <p>
+     * Setting this handler will override the default behavior, which is to let
+     * fields show their validation status messages and show binder level
+     * validation errors or OK status in the label set with
+     * {@link #setStatusLabel(Label)}.
+     * <p>
+     *
+     * @param statusHandler
+     *            the status handler to set, not <code>null</code>
+     * @throws NullPointerException
+     *             for <code>null</code> status handler
+     * @see #setStatusLabel(Label)
+     * @see BindingBuilder#withValidationStatusHandler(BindingValidationStatusHandler)
+     */
+	public void setValidationStatusHandler(BasicBinderValidationStatusHandler<BEAN> statusHandler) {
+		Objects.requireNonNull(statusHandler,
+				"Cannot set a null " + BasicBinderValidationStatusHandler.class.getSimpleName());
+		this.statusHandler = statusHandler;
+	}
+
+    /**
+     * Gets the status handler of this form.
+     * <p>
+     * If none has been set with
+     * {@link #setValidationStatusHandler(BinderValidationStatusHandler)}, the
+     * default implementation is returned.
+     *
+     * @return the status handler used, never <code>null</code>
+     * @see #setValidationStatusHandler(BinderValidationStatusHandler)
+     */
+	public BasicBinderValidationStatusHandler<BEAN> getValidationStatusHandler() {
+		return Optional.ofNullable(statusHandler).orElse(this::handleBinderValidationStatus);
+	}
+
+    /**
+     * The default binder level status handler.
+     * <p>
+     * Passes all field related results to the Binding status handlers. All
+     * other status changes are displayed in the status label, if one has been
+     * set with {@link #setStatusLabel(Label)}.
+     *
+     * @param binderStatus
+     *            status of validation results from binding and/or bean level
+     *            validators
+     */
+	protected void handleBinderValidationStatus(BasicBinderValidationStatus<BEAN> binderStatus) {
+		// let field events go to binding status handlers
+		binderStatus.notifyBindingValidationStatusHandlers();
+
+		// show first possible error or OK status in the label if set
+		if (getStatusLabel().isPresent()) {
+			String statusMessage = binderStatus.getBeanValidationErrors().stream().findFirst()
+					.map(ValidationResult::getErrorMessage).orElse("");
+			getStatusLabel().get().setValue(statusMessage);
+		}
+	}
+
+	public BasicBinderValidationStatus<BEAN> getValidationStatus() {
+		return status;
+	}
 }
