@@ -86,7 +86,6 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 
 		Integer numberOfBoundFields = getFieldsInDeclareOrder(objectClass).stream()
 				.filter(memberField -> HasValue.class.isAssignableFrom(memberField.getType()))
-				.filter(memberField -> !isFieldBound(memberField, objectWithMemberFields))
 				.map(memberField -> handleProperty(memberField, objectWithMemberFields,
 						(property, type) -> bindProperty(objectWithMemberFields, memberField, property, type)))
 				.reduce(0, this::accumulate, Integer::sum);
@@ -158,26 +157,6 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 			searchClass = searchClass.getSuperclass();
 		}
 		return memberFieldInOrder;
-	}
-
-	protected boolean isFieldBound(Field memberField, Object objectWithMemberFields) {
-		try {
-			HasValue<?> field = (HasValue<?>) getMemberFieldValue(memberField, objectWithMemberFields);
-			return bindings.stream().anyMatch(binding -> binding.getField() == field);
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
-	protected Object getMemberFieldValue(Field memberField, Object objectWithMemberFields) {
-		memberField.setAccessible(true);
-		try {
-			return memberField.get(objectWithMemberFields);
-		} catch (IllegalArgumentException | IllegalAccessException e) {
-			throw new RuntimeException(e);
-		} finally {
-			memberField.setAccessible(false);
-		}
 	}
 
 	protected boolean handleProperty(Field field, Object objectWithMemberFields,
@@ -334,3 +313,4 @@ public class AutoBinder<BEAN> extends ReflectionBinder<BEAN> {
 	}
 
 }
+

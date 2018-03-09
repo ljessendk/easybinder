@@ -10,7 +10,7 @@
 	</organization>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<vaadin.version>8.1.4</vaadin.version>
+		<vaadin.version><!--  8.2.0.beta1-->8.1.4</vaadin.version>
 		<vaadin.plugin.version>${vaadin.version}</vaadin.plugin.version>
 		<!-- ZIP Manifest fields -->
 		<Implementation-Version>${project.version}</Implementation-Version>
@@ -90,6 +90,12 @@
 			<version>${vaadin.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>net.avh4.test</groupId>
+			<artifactId>junit-nested</artifactId>
+			<version>1.0.1</version>
+			<scope>test</scope>
+		</dependency>
 		<!-- Mockito -->
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -109,6 +115,13 @@
 			<id>vaadin-addons</id>
 			<url>http://maven.vaadin.com/vaadin-addons</url>
 		</repository>
+		<!--
+		<repository>
+			<id>vaadin-prereleases</id>
+			<name>Vaadin Pre-releases</name>
+			<url>https://maven.vaadin.com/vaadin-prereleases</url>
+		</repository>
+		-->
 	</repositories>
 
 	<build>
@@ -243,8 +256,87 @@
 					</execution>
 				</executions>
 			</plugin>
-
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>3.1.0-RC6</version>
+				<dependencies>
+					<dependency>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs</artifactId>
+						<version>3.1.0</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>validate</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+					<!-- <includeFilterFile>spotbugs-include.xml</includeFilterFile>-->
+				</configuration>
+			</plugin>
 		</plugins>
+		<pluginManagement>
+			<plugins>
+				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											com.github.spotbugs
+										</groupId>
+										<artifactId>
+											spotbugs-maven-plugin
+										</artifactId>
+										<versionRange>
+											[3.1.0-RC6,)
+										</versionRange>
+										<goals>
+											<goal>check</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<!-- Crashes under eclipse -->
+									<pluginExecutionFilter>
+										<groupId>
+											org.apache.felix
+										</groupId>
+										<artifactId>
+											maven-bundle-plugin
+										</artifactId>
+										<versionRange>
+											[3.2.0,)
+										</versionRange>
+										<goals>
+											<goal>manifest</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 	<profiles>
