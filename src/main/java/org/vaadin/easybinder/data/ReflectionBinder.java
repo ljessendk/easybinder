@@ -233,8 +233,8 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 			Query<?, ?> q = new Query<>(0, 1, null, null, null);
 			if (dp.size((Query) q) > 0) {
 				Optional<Class<PRESENTATION>> presentationClass = hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass());
-				if(presentationClass.get().isAnonymousClass()) {
-					log.log(Level.INFO,"PresentationType represents a anonymous class, fetching enclosing class.");
+				if (presentationClass.get().isAnonymousClass()) {
+					log.log(Level.INFO, "PresentationType represents a anonymous class, fetching enclosing class.");
 					presentationClass = hasItems.getDataProvider().fetch((Query) q).findFirst().map(e -> e.getClass().getEnclosingClass());
 				}
 				return presentationClass;
