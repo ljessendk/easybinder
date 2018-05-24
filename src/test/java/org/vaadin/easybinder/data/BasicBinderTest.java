@@ -201,7 +201,7 @@ public class BasicBinderTest {
 		MyEntity bean = new MyEntity();
 		binder.setBean(bean);
 		age.setValue("1");
-		BindingValidationStatus<String> s = binding.validate();
+		BindingValidationStatus<Integer> s = binding.validate();
 		assertTrue(s.getResult().isPresent());
 		assertFalse(s.getResult().get().isError());
 	}
@@ -212,7 +212,7 @@ public class BasicBinderTest {
 		MyEntity bean = new MyEntity();
 		binder.setBean(bean);
 		age.setValue("-11");
-		BindingValidationStatus<String> s = binding.validate();
+		BindingValidationStatus<Integer> s = binding.validate();
 		assertTrue(s.getResult().isPresent());
 		assertTrue(s.getResult().get().isError());
 	}
@@ -223,7 +223,7 @@ public class BasicBinderTest {
 		MyEntity bean = new MyEntity();
 		binder.setBean(bean);
 		age.setValue("nan");
-		BindingValidationStatus<String> s = binding.validate();
+		BindingValidationStatus<Integer> s = binding.validate();
 		assertTrue(s.getResult().isPresent());
 		assertTrue(s.getResult().get().isError());
 	}

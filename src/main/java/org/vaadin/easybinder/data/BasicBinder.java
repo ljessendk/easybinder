@@ -60,7 +60,7 @@ import com.vaadin.ui.UI;
 @SuppressWarnings("serial")
 public class BasicBinder<BEAN> {
 
-	public static class EasyBinding<BEAN, FIELDVALUE, TARGET> implements Binding<BEAN, FIELDVALUE> {
+	public static class EasyBinding<BEAN, FIELDVALUE, TARGET> implements Binding<BEAN, TARGET> {
 		protected final HasValue<FIELDVALUE> field;
 		protected final ValueProvider<BEAN, TARGET> getter;
 		protected final Setter<BEAN, TARGET> setter;
@@ -168,7 +168,7 @@ public class BasicBinder<BEAN> {
 		}
 
 		@Override
-		public BindingValidationStatus<FIELDVALUE> validate() {
+		public BindingValidationStatus<TARGET> validate() {
 			return validate(true);
 		}
 
@@ -202,6 +202,8 @@ public class BasicBinder<BEAN> {
 			}
 		}
 
+		// Since 8.4
+		//@Override
 		public ValueProvider<BEAN, TARGET> getGetter() {
 			return getter;
 		}
@@ -209,8 +211,8 @@ public class BasicBinder<BEAN> {
 		// Since 8.2
 		//@Override
 		//@SuppressWarnings("deprecation")
-		public BindingValidationStatus<FIELDVALUE> validate(boolean fireEvent) {
-			BindingValidationStatus<FIELDVALUE> status = new BindingValidationStatus<FIELDVALUE>(this, hasError() ? Status.ERROR : Status.OK,
+		public BindingValidationStatus<TARGET> validate(boolean fireEvent) {
+			BindingValidationStatus<TARGET> status = new BindingValidationStatus<TARGET>(this, hasError() ? Status.ERROR : Status.OK,
 					conversionError != null ? ValidationResult.error(conversionError)
 							: validationError != null ? ValidationResult.error(validationError)
 									: ValidationResult.ok());
@@ -245,6 +247,18 @@ public class BasicBinder<BEAN> {
 				clearConversionError();
 				setter.accept(bean, e);
 			});
+		}
+
+		// Since 8.4
+		//@Override
+		public Setter<BEAN, TARGET> getSetter() {
+			return setter;
+		}
+
+		// Since 8.4
+		//@Override
+		public boolean isReadOnly() {
+			return (setter == null || field.isReadOnly());
 		}
 
 	}
