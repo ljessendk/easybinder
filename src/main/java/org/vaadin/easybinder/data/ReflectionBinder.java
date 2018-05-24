@@ -36,6 +36,7 @@ import org.vaadin.easybinder.data.converters.NullConverterPrimitiveTarget;
 
 import com.googlecode.gentyref.GenericTypeReflector;
 import com.vaadin.data.BeanPropertySet;
+import com.vaadin.data.BeanPropertySet.NestedBeanPropertyDefinition;
 import com.vaadin.data.Converter;
 import com.vaadin.data.HasItems;
 import com.vaadin.data.HasValue;
@@ -89,7 +90,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 		Optional<Class<PRESENTATION>> presentationTypeClass = getPresentationTypeForField(field);
 
 		// PropertyDefinition does not return primitive type, so need to get it by field name
-		Optional<Field> modelField = getDeclaredFieldByName(definition.getPropertyHolderType(), definition.getName());
+		Optional<Field> modelField = getDeclaredFieldByName(definition.getPropertyHolderType(), getTopLevelName(definition));
 		Class<?> modelTypeClass = modelField.get().getType();
 
 		Converter<PRESENTATION, ?> converter = null;
@@ -144,7 +145,7 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 
 		boundProperties.put(propertyName, binding);
 
-		Optional<Field> modelField = getDeclaredFieldByName(definition.getPropertyHolderType(), definition.getName());
+		Optional<Field> modelField = getDeclaredFieldByName(definition.getPropertyHolderType(), getTopLevelName(definition));
 		if (Arrays.asList(modelField.get().getAnnotations()).stream().anyMatch(requiredConfigurator)) {
 			field.setRequiredIndicatorVisible(true);
 		}
@@ -288,6 +289,27 @@ public class ReflectionBinder<BEAN> extends BasicBinder<BEAN> implements HasGene
 	@Override
 	public Class<BEAN> getGenericType() {
 		return clazz;
+	}
+
+	/*
+	Workaround for broken backwards compatibility in Vaadin 8.3:
+	The behavior of NestedBeanPropertyDefinition.getName() was changed in 8.3 instead a new method getTopLevelName() was introduced that
+	provides the old "getName()" functionality. However since the getTopLevelName() was not introduced before 8.3 we have to provide out own
+	implementation that works with all 8.x series of Vaadin
+	 */
+	String getTopLevelName(PropertyDefinition<BEAN, ?> definition) {
+		String propertyDefinitionName = definition.getName();
+		if (definition instanceof NestedBeanPropertyDefinition) {
+			NestedBeanPropertyDefinition<BEAN, ?> nbpd = (NestedBeanPropertyDefinition<BEAN, ?>) definition;
+			PropertyDefinition<BEAN, ?> parent = nbpd.getParent();
+			if (parent != null) {
+				String prefix = parent.getName() + ".";
+				if (propertyDefinitionName.startsWith(prefix)) {
+					propertyDefinitionName = propertyDefinitionName.substring(prefix.length());
+				}
+			}
+		}
+		return propertyDefinitionName;
 	}
 
 }
