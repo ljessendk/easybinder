@@ -59,7 +59,7 @@ public class BasicBinderNumberTest {
 
 		assertEquals("", number.getValue());
 		number.setValue("1");
-		assertEquals(new Integer(1), t.getNumber());
+		assertEquals(Integer.valueOf(1), t.getNumber());
 		number.setValue("");
 
 		assertEquals(null, t.getNumber());
@@ -92,7 +92,7 @@ public class BasicBinderNumberTest {
 		assertEquals("", number.getValue());
 
 		number.setValue("1");
-		assertEquals(new Integer(1), t.getNumber());
+		assertEquals(Integer.valueOf(1), t.getNumber());
 		number.setValue("");
 
 		assertEquals(null, t.getNumber());

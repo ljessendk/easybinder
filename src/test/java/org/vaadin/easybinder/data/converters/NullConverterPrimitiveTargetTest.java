@@ -21,7 +21,7 @@ public class NullConverterPrimitiveTargetTest {
 	public void testToModelNotEmpty() {
 		Result<Integer> r = converter.convertToModel(10, null);
 		assertFalse(r.isError());
-		r.ifOk(e -> assertEquals(new Integer(10), e));
+		r.ifOk(e -> assertEquals(Integer.valueOf(10), e));
 	}
 
 	@Test
@@ -31,7 +31,7 @@ public class NullConverterPrimitiveTargetTest {
 
 	@Test
 	public void testToPresentationNotNull() {
-		assertEquals(new Integer(11), converter.convertToPresentation(11, null));
+		assertEquals(Integer.valueOf(11), converter.convertToPresentation(11, null));
 	}
 
 }

@@ -51,7 +51,7 @@ public class ConverterRegistryTest {
 		Converter<String, Character> c = r.getConverter(String.class, Character.class);
 		Result<Character> res = c.convertToModel("C", null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Character('C'), e));
+		res.ifOk(e -> assertEquals(Character.valueOf('C'), e));
 	}
 
 	@Test

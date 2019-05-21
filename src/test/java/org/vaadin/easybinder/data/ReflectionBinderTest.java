@@ -129,17 +129,17 @@ public class ReflectionBinderTest {
 		Converter<Integer, Integer> intConverter = binder.createCastConverter(int.class);
 		Result<Integer> res = intConverter.convertToModel(10, null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), intConverter.convertToPresentation(new Integer(21), null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), intConverter.convertToPresentation(Integer.valueOf(21), null));
 	}
 
 	@Test
 	public void testCastingConverterNonPrimitiveType() {
 		Converter<Integer, Integer> intConverter = binder.createCastConverter(Integer.class);
-		Result<Integer> res = intConverter.convertToModel(new Integer(10), null);
+		Result<Integer> res = intConverter.convertToModel(Integer.valueOf(10), null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), intConverter.convertToPresentation(new Integer(21), null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), intConverter.convertToPresentation(Integer.valueOf(21), null));
 	}
 
 	@Test
@@ -266,7 +266,7 @@ public class ReflectionBinderTest {
 		assertNotNull(binding);
 		verify(converterRegistry, never()).getConverter(any(), any());
 
-		binding.converterValidatorChain.convertToModel(new Double(10.0), null);
+		binding.converterValidatorChain.convertToModel(Double.valueOf(10.0), null);
 	}
 
 	@Test
@@ -321,13 +321,13 @@ public class ReflectionBinderTest {
 		assertNotNull(converter);
 		Result<Integer> res = converter.convertToModel(10, null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), converter.convertToPresentation(21, null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), converter.convertToPresentation(21, null));
 
 		res = converter.convertToModel(emptyValue, null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(emptyValue), e));
-		assertEquals(new Integer(emptyValue), converter.convertToPresentation(emptyValue, null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(emptyValue), e));
+		assertEquals(Integer.valueOf(emptyValue), converter.convertToPresentation(emptyValue, null));
 	}
 
 	@Test
@@ -337,15 +337,15 @@ public class ReflectionBinderTest {
 		when(converterRegistry.getConverter(int.class, Integer.class)).thenReturn(null);
 		Converter<Integer, Integer> converter = binder.createConverter(int.class, Integer.class, emptyValue);
 		assertNotNull(converter);
-		Result<Integer> res = converter.convertToModel(new Integer(10), null);
+		Result<Integer> res = converter.convertToModel(Integer.valueOf(10), null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), converter.convertToPresentation(new Integer(21), null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), converter.convertToPresentation(Integer.valueOf(21), null));
 
 		res = converter.convertToModel(emptyValue, null);
 		assertFalse(res.isError());
 		res.ifOk(e -> assertEquals(null, e));
-		assertEquals(new Integer(emptyValue), converter.convertToPresentation(null, null));
+		assertEquals(Integer.valueOf(emptyValue), converter.convertToPresentation(null, null));
 	}
 
 	@Test
@@ -355,10 +355,10 @@ public class ReflectionBinderTest {
 		when(converterRegistry.getConverter(Integer.class, int.class)).thenReturn(null);
 		Converter<Integer, Integer> converter = binder.createConverter(Integer.class, int.class, emptyValue);
 		assertNotNull(converter);
-		Result<Integer> res = converter.convertToModel(new Integer(10), null);
+		Result<Integer> res = converter.convertToModel(Integer.valueOf(10), null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), converter.convertToPresentation(new Integer(21), null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), converter.convertToPresentation(Integer.valueOf(21), null));
 
 		res = converter.convertToModel(emptyValue, null);
 		// Should fail
@@ -372,10 +372,10 @@ public class ReflectionBinderTest {
 		when(converterRegistry.getConverter(Integer.class, Integer.class)).thenReturn(null);
 		Converter<Integer, Integer> converter = binder.createConverter(Integer.class, Integer.class, emptyValue);
 		assertNotNull(converter);
-		Result<Integer> res = converter.convertToModel(new Integer(10), null);
+		Result<Integer> res = converter.convertToModel(Integer.valueOf(10), null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), converter.convertToPresentation(new Integer(21), null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), converter.convertToPresentation(Integer.valueOf(21), null));
 
 		res = converter.convertToModel(emptyValue, null);
 		assertFalse(res.isError());
@@ -386,15 +386,15 @@ public class ReflectionBinderTest {
 
 	@Test
 	public void testCreateConverterNonPrimitiveToNonPrimitiveEmptyValue() {
-		Integer emptyValue = new Integer(0);
+		Integer emptyValue = Integer.valueOf(0);
 
 		when(converterRegistry.getConverter(Integer.class, Integer.class)).thenReturn(null);
 		Converter<Integer, Integer> converter = binder.createConverter(Integer.class, Integer.class, emptyValue);
 		assertNotNull(converter);
-		Result<Integer> res = converter.convertToModel(new Integer(10), null);
+		Result<Integer> res = converter.convertToModel(Integer.valueOf(10), null);
 		assertFalse(res.isError());
-		res.ifOk(e -> assertEquals(new Integer(10), e));
-		assertEquals(new Integer(21), converter.convertToPresentation(new Integer(21), null));
+		res.ifOk(e -> assertEquals(Integer.valueOf(10), e));
+		assertEquals(Integer.valueOf(21), converter.convertToPresentation(Integer.valueOf(21), null));
 
 		res = converter.convertToModel(emptyValue, null);
 		assertFalse(res.isError());
@@ -448,10 +448,10 @@ public class ReflectionBinderTest {
 		when(converterRegistry.getConverter(Boolean.class, boolean.class)).thenReturn(null);
 		Converter<Boolean, Boolean> converter = binder.createConverter(Boolean.class, boolean.class, emptyValue);
 		assertNotNull(converter);
-		Result<Boolean> res = converter.convertToModel(new Boolean(false), null);
+		Result<Boolean> res = converter.convertToModel(Boolean.FALSE, null);
 		assertFalse(res.isError());
 		res.ifOk(e -> assertEquals(false, e));
-		res = converter.convertToModel(new Boolean(true), null);
+		res = converter.convertToModel(Boolean.TRUE, null);
 		assertFalse(res.isError());
 		res.ifOk(e -> assertEquals(true, e));
 

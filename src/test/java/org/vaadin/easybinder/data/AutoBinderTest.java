@@ -233,7 +233,7 @@ public class AutoBinderTest {
 		assertEquals("mystreet", entity.getStreet());
 
 		numberField.setValue("100");
-		assertEquals(new Integer(100), entity.getNumber());
+		assertEquals(Integer.valueOf(100), entity.getNumber());
 
 		assertNull(numberField.getComponentError());
 		numberField.setValue("0");
@@ -270,7 +270,7 @@ public class AutoBinderTest {
 		assertEquals("mystreet", entity.getStreet());
 
 		numberField.setValue("100");
-		assertEquals(new Integer(100), entity.getNumber());
+		assertEquals(Integer.valueOf(100), entity.getNumber());
 
 		assertNull(numberField.getComponentError());
 		numberField.setValue("0");

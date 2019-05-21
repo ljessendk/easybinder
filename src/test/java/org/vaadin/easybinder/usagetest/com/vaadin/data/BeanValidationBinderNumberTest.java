@@ -66,7 +66,7 @@ public class BeanValidationBinderNumberTest {
 
 		assertEquals("", number.getValue());
 		number.setValue("1");
-		assertEquals(new Integer(1), t.getNumber());
+		assertEquals(Integer.valueOf(1), t.getNumber());
 		number.setValue("");
 
 		// Since validation fails the value is still "1" and not null (also kind of
@@ -74,6 +74,6 @@ public class BeanValidationBinderNumberTest {
 		// See Binder.BinderImpl.writeFieldValue()
 
 		// assertEquals(null, t.getNumber());
-		assertEquals(new Integer(1), t.getNumber());
+		assertEquals(Integer.valueOf(1), t.getNumber());
 	}
 }

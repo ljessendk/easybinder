@@ -2,7 +2,6 @@ package org.vaadin.easybinder.usagetest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -183,7 +182,7 @@ public abstract class BaseTests {
 
 		// Character->String presentation->model
 		form.flightSuffix.setValue("D");
-		assertEquals(new Character('D'), f.getFlightId().getFlightSuffix());
+		assertEquals(Character.valueOf('D'), f.getFlightId().getFlightSuffix());
 		form.flightSuffix.setValue("");
 		assertNull(f.getFlightId().getFlightSuffix());
 		// Conversion fails - data is not written
@@ -191,10 +190,10 @@ public abstract class BaseTests {
 		assertNull(form.flightSuffix.getErrorMessage());
 		form.flightSuffix.setValue("KK");
 		assertNotNull(form.flightSuffix.getErrorMessage());
-		assertEquals(new Character('D'), f.getFlightId().getFlightSuffix());
+		assertEquals(Character.valueOf('D'), f.getFlightId().getFlightSuffix());
 		form.flightSuffix.setValue("E");
 		assertNull(form.flightSuffix.getErrorMessage());
-		assertEquals(new Character('E'), f.getFlightId().getFlightSuffix());
+		assertEquals(Character.valueOf('E'), f.getFlightId().getFlightSuffix());
 
 		// TODO: Write tests for other conversion fields
 	}
