@@ -22,7 +22,7 @@ public class FormBuilderIT extends AbstractWebDriverCase {
 		driver.navigate().to(BASEURL + BuildAndBindExample.class.getName());
 
 		// Consider using Vaadin TestBench to make stuff easier
-		new WebDriverWait(driver, 30).until(VaadinConditions.ajaxCallsCompleted());
+		new WebDriverWait(driver, 30).until(e -> VaadinConditions.ajaxCallsCompleted(e));
 		/*
 		 * final WebElement inputElement = driver.findElement(By.tagName("input"));
 		 * 
