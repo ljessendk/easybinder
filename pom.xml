@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.vaadin</groupId>
 	<artifactId>easybinder</artifactId>
-	<version>0.6</version>
+	<version>0.7-SNAPSHOT</version>
 	<name>easybinder</name>
 	<packaging>bundle</packaging>
 	<organization>
@@ -26,7 +26,7 @@
 		<url>https://github.com/${github.account}/${github.project}</url>
 		<connection>scm:git:git://github.com/${github.account}/${github.project}.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com:/${github.account}/${github.project}.git</developerConnection>
-		<tag>easybinder-0.6</tag>
+		<tag>HEAD</tag>
 	</scm>
 	<issueManagement>
 		<system>GitHub</system>
