@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.vaadin</groupId>
 	<artifactId>easybinder</artifactId>
-	<version>0.7-SNAPSHOT</version>
+	<version>0.6.0-SNAPSHOT</version>
 	<name>easybinder</name>
 	<packaging>bundle</packaging>
 	<organization>
